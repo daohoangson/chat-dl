@@ -2,17 +2,12 @@
   "name": "chat2md",
   "version": "1.0.0",
   "scripts": {
-    "url2json": "tsx src/bin/url2json.ts",
-    "url2md": "tsx src/bin/url2md.ts"
+    "url2json": "bun run src/bin/url2json.ts",
+    "url2md": "bun run src/bin/url2md.ts"
   },
-  "author": "Dao Hoang Son",
-  "license": "ISC",
-  "description": "",
   "devDependencies": {
     "@tsconfig/strictest": "^2.0.5",
-    "prettier": "^3.5.3",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "prettier": "^3.5.3"
   },
   "dependencies": {
     "file-system-cache": "^2.4.7",
