@@ -1,5 +1,6 @@
 import { renderChatGPTFromUrl } from "@/chatgpt";
 import { getProviderByUrl } from "@/common";
+import { renderClaudeFromUrl } from "@/claude";
 import { renderGrokFromUrl } from "@/grok";
 
 async function renderFromUrl(url: string) {
@@ -7,6 +8,8 @@ async function renderFromUrl(url: string) {
 	switch (provider) {
 		case "chatgpt":
 			return await renderChatGPTFromUrl(url);
+		case "claude":
+			return await renderClaudeFromUrl(url);
 		case "grok":
 			return await renderGrokFromUrl(url);
 	}

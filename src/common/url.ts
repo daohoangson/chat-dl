@@ -1,4 +1,4 @@
-type Provider = "grok" | "chatgpt";
+type Provider = "grok" | "chatgpt" | "claude";
 
 export function getProviderByUrl(url: string): Provider | undefined {
 	const hostname = new URL(url).hostname;
@@ -6,6 +6,11 @@ export function getProviderByUrl(url: string): Provider | undefined {
 		case "chatgpt.com":
 			if (url.includes("://chatgpt.com/share/")) {
 				return "chatgpt";
+			}
+			break;
+		case "claude.ai":
+			if (url.includes("://claude.ai/share/")) {
+				return "claude";
 			}
 			break;
 		case "x.com":

@@ -1,5 +1,6 @@
 import { downloadChatGPTFromUrl } from "@/chatgpt";
 import { getProviderByUrl } from "@/common";
+import { downloadClaudeFromUrl } from "@/claude";
 import { downloadGrokFromUrl } from "@/grok";
 
 async function downloadFromUrl(url: string) {
@@ -7,6 +8,8 @@ async function downloadFromUrl(url: string) {
 	switch (provider) {
 		case "chatgpt":
 			return await downloadChatGPTFromUrl(url);
+		case "claude":
+			return await downloadClaudeFromUrl(url);
 		case "grok":
 			return await downloadGrokFromUrl(url);
 	}
