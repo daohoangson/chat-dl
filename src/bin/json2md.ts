@@ -1,18 +1,20 @@
 import { renderChatGPTFromJson } from "@/chatgpt";
 import { renderClaudeFromJson } from "@/claude";
+import { parseSchemaOrThrow } from "@/common";
 import { renderGrokFromJson } from "@/grok";
 import { JSONParser } from "@streamparser/json-node";
 import * as v from "valibot";
 import type { downloadFromUrl } from "./url2json";
 
 function renderFromJson(input: unknown) {
-	const parsed: Awaited<ReturnType<typeof downloadFromUrl>> = v.parse(
-		v.object({
-			provider: v.picklist(["chatgpt", "claude", "grok"]),
-			json: v.unknown(),
-		}),
-		input,
-	);
+	const parsed: Awaited<ReturnType<typeof downloadFromUrl>> =
+		parseSchemaOrThrow(
+			v.object({
+				provider: v.picklist(["chatgpt", "claude", "grok"]),
+				json: v.unknown(),
+			}),
+			input,
+		);
 
 	const { provider, json } = parsed;
 	switch (provider) {

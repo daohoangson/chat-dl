@@ -1,5 +1,4 @@
-import { cache } from "@/common";
-import * as v from "valibot";
+import { cache, parseSchemaOrThrow } from "@/common";
 import { downloadFromUrl } from "./browser";
 import { renderFromItems } from "./markdown";
 import { grokShareSchema } from "./models";
@@ -9,7 +8,7 @@ export async function downloadGrokFromUrl(url: string) {
 }
 
 export function renderGrokFromJson(json: unknown) {
-	const items = v.parse(grokShareSchema, json).data.grokShare.items;
+	const { items } = parseSchemaOrThrow(grokShareSchema, json).data.grokShare;
 	return renderFromItems(items);
 }
 

@@ -1,4 +1,4 @@
-import { cache } from "@/common";
+import { cache, parseSchemaOrThrow } from "@/common";
 import * as v from "valibot";
 import { downloadFromUrl } from "./browser";
 import { renderFromMessages } from "./markdown";
@@ -9,7 +9,7 @@ export async function downloadChatGPTFromUrl(url: string) {
 }
 
 export function renderChatGPTFromJson(json: unknown) {
-	const messages = v.parse(v.array(messageSchema), json);
+	const messages = parseSchemaOrThrow(v.array(messageSchema), json);
 	return renderFromMessages(messages);
 }
 
