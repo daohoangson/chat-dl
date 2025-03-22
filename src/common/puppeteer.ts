@@ -12,11 +12,34 @@ export async function newBrowserPage<T>(fn: (page: Page) => Promise<T>) {
 		browser = await puppeteer.launch({ headless: false });
 	}
 
-	const page = await browser.newPage();
+	let page: Page | undefined;
+	const existingPages = await browser.pages();
+	if (existingPages.length === 1) {
+		const existingPage = existingPages[0];
+		if (existingPage?.url() === "about:blank") {
+			page = existingPage;
+		}
+	}
+	if (typeof page === "undefined") {
+		page = await browser.newPage();
+	}
 
 	try {
 		return await fn(page);
 	} finally {
-		await browser.close();
+		if (
+			typeof PUPPETEER_BROWSER_WS_ENDPOINT === "string" &&
+			PUPPETEER_BROWSER_WS_ENDPOINT.startsWith("ws://localhost")
+		) {
+			// it's possible to run Chrome in debug mode
+			// e.g. `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222`
+			// then obtain the ws debugger URL at http://localhost:9222/json/version
+			// this is needed for ChatGPT enterprise shared links
+			// see https://help.openai.com/en/articles/8474715-chatgpt-enterprise-shared-links-faq
+			await page.close();
+			await browser.disconnect();
+		} else {
+			await browser.close();
+		}
 	}
 }
