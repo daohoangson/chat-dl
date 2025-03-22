@@ -8,8 +8,12 @@ export async function downloadClaudeFromUrl(url: string) {
 	return await cache(url, () => downloadFromUrl(url));
 }
 
+export function renderClaudeFromJson(json: unknown) {
+	const shareData = v.parse(claudeShareSchema, json);
+	return renderFromMessages(shareData.chat_messages);
+}
+
 export async function renderClaudeFromUrl(url: string) {
 	const { value } = await downloadClaudeFromUrl(url);
-	const shareData = v.parse(claudeShareSchema, value);
-	return renderFromMessages(shareData.chat_messages);
+	return renderClaudeFromJson(value);
 }

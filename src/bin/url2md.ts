@@ -19,12 +19,16 @@ async function renderFromUrl(url: string) {
 
 (async () => {
 	const urls = process.argv.slice(2);
-	for (const url of urls) {
-		const markdown = await renderFromUrl(url);
-		process.stdout.write(markdown);
+	for (let i = 0; i < urls.length; i++) {
+		const url = urls[i];
+		if (typeof url !== "string") {
+			throw new Error(`Unsupported URL: ${url}`);
+		}
 
-		if (urls.length > 1) {
+		if (i > 0) {
 			process.stdout.write("\n\n");
 		}
+		const markdown = await renderFromUrl(url);
+		process.stdout.write(markdown);
 	}
 })();

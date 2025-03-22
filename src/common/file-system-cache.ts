@@ -2,7 +2,7 @@ import { Cache } from "file-system-cache";
 
 const cacheInstance = new Cache({ ttl: 86400 });
 
-interface CacheValue<T> {
+export interface CacheValue<T> {
 	value: T;
 	cacheStatus: "HIT" | "MISS";
 }

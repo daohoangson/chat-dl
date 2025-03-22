@@ -8,8 +8,12 @@ export async function downloadChatGPTFromUrl(url: string) {
 	return await cache(url, () => downloadFromUrl(url));
 }
 
+export function renderChatGPTFromJson(json: unknown) {
+	const messages = v.parse(v.array(messageSchema), json);
+	return renderFromMessages(messages);
+}
+
 export async function renderChatGPTFromUrl(url: string) {
 	const { value } = await downloadChatGPTFromUrl(url);
-	const messages = v.parse(v.array(messageSchema), value);
-	return renderFromMessages(messages);
+	return renderChatGPTFromJson(value);
 }

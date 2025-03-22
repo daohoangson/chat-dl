@@ -8,8 +8,12 @@ export async function downloadGrokFromUrl(url: string) {
 	return await cache(url, () => downloadFromUrl(url));
 }
 
+export function renderGrokFromJson(json: unknown) {
+	const items = v.parse(grokShareSchema, json).data.grokShare.items;
+	return renderFromItems(items);
+}
+
 export async function renderGrokFromUrl(url: string) {
 	const { value } = await downloadGrokFromUrl(url);
-	const items = v.parse(grokShareSchema, value).data.grokShare.items;
-	return renderFromItems(items);
+	return renderGrokFromJson(value);
 }
