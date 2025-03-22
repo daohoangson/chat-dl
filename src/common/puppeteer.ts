@@ -34,8 +34,6 @@ export async function newBrowserPage<T>(fn: (page: Page) => Promise<T>) {
 			// it's possible to run Chrome in debug mode
 			// e.g. `/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222`
 			// then obtain the ws debugger URL at http://localhost:9222/json/version
-			// this is needed for ChatGPT enterprise shared links
-			// see https://help.openai.com/en/articles/8474715-chatgpt-enterprise-shared-links-faq
 			await page.close();
 			await browser.disconnect();
 		} else {
