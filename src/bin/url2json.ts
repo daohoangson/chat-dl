@@ -1,6 +1,6 @@
 import { downloadChatGPTFromUrl } from "@/chatgpt";
-import { getProviderByUrl } from "@/common";
 import { downloadClaudeFromUrl } from "@/claude";
+import { getProviderByUrl } from "@/common";
 import { downloadGrokFromUrl } from "@/grok";
 
 async function downloadFromUrl(url: string) {
