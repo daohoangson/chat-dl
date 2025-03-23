@@ -1,22 +1,26 @@
 {
-	"name": "chat2md",
-	"version": "1.0.0",
+	"name": "chat-dl",
+	"version": "0.0.1",
 	"scripts": {
 		"ci": "npx @biomejs/biome ci .",
 		"format": "npx @biomejs/biome format --write .",
 		"lint": "npx @biomejs/biome lint --write .",
-		"url2json": "bun run src/bin/url2json.ts",
-		"url2md": "bun run src/bin/url2md.ts"
+		"json2md": "tsx src/bin/json2md.ts",
+		"url2json": "tsx src/bin/url2json.ts",
+		"url2md": "tsx src/bin/url2md.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
-		"@tsconfig/strictest": "^2.0.5"
+		"@tsconfig/strictest": "^2.0.5",
+		"tsx": "^4.19.3",
+		"typescript": "^5.8.2"
 	},
 	"dependencies": {
 		"@putout/minify": "^4.12.3",
+		"@streamparser/json-node": "^0.0.22",
 		"file-system-cache": "^2.4.7",
 		"puppeteer": "^24.4.0",
 		"uuid": "^11.1.0",
-		"valibot": "^1.0.0-rc.4"
+		"valibot": "^1.0.0"
 	}
 }
