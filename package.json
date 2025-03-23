@@ -1,26 +1,35 @@
 {
 	"name": "chat-dl",
 	"version": "0.0.1",
+	"bin": {
+		"chat-dl": "./bin/chat-dl"
+	},
 	"scripts": {
 		"ci": "npx @biomejs/biome ci .",
 		"format": "npx @biomejs/biome format --write .",
 		"lint": "npx @biomejs/biome lint --write .",
-		"json2md": "tsx src/bin/json2md.ts",
-		"url2json": "tsx src/bin/url2json.ts",
-		"url2md": "tsx src/bin/url2md.ts"
+		"start": "tsx src/bin/chat-dl.ts",
+		"build": "tsup src/bin/chat-dl.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
+		"@putout/minify": "^4.12.3",
 		"@tsconfig/strictest": "^2.0.5",
+		"@types/yargs": "^17.0.33",
+		"acorn": "^8.14.1",
+		"espree": "^10.3.0",
+		"hermes-parser": "^0.27.0",
+		"tenko": "^2.0.1",
+		"tsup": "^8.4.0",
 		"tsx": "^4.19.3",
 		"typescript": "^5.8.2"
 	},
 	"dependencies": {
-		"@putout/minify": "^4.12.3",
 		"@streamparser/json-node": "^0.0.22",
 		"file-system-cache": "^2.4.7",
 		"puppeteer": "^24.4.0",
 		"uuid": "^11.1.0",
-		"valibot": "^1.0.0"
+		"valibot": "^1.0.0",
+		"yargs": "^17.7.2"
 	}
 }

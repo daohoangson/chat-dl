@@ -3,3 +3,6 @@
 
 # npm install
 node_modules
+
+# tsup
+dist
