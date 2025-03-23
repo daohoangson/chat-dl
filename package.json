@@ -1,15 +1,18 @@
 {
 	"name": "chat-dl",
-	"version": "0.0.1",
+	"version": "0.0.2",
+	"files": ["bin", "dist"],
 	"bin": {
-		"chat-dl": "./bin/chat-dl"
+		"chat-dl": "bin/chat-dl"
 	},
 	"scripts": {
 		"ci": "npx @biomejs/biome ci .",
 		"format": "npx @biomejs/biome format --write .",
 		"lint": "npx @biomejs/biome lint --write .",
 		"start": "tsx src/bin/chat-dl.ts",
-		"build": "tsup src/bin/chat-dl.ts"
+		"build": "tsup src/bin/chat-dl.ts",
+		"prepublic": "npm run ci && npm run build",
+		"public": "npm publish --access public"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
