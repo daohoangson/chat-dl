@@ -44,12 +44,12 @@ function extractChatGPT() {
 		const prefix = "__reactFiber$";
 		type Key = keyof typeof dom | undefined;
 		const key = Object.keys(dom).find((k) => k.startsWith(prefix)) as Key;
-		if (!key) return;
-
-		// biome-ignore lint/suspicious/noExplicitAny: fiber any
-		const fiber = dom[key] as any;
-		const messages = extractRecursively(fiber.memoizedProps.children);
-		if (Array.isArray(messages)) allMessages.push(...messages);
+		if (key) {
+			// biome-ignore lint/suspicious/noExplicitAny: fiber any
+			const fiber = dom[key] as any;
+			const messages = extractRecursively(fiber.memoizedProps.children);
+			if (Array.isArray(messages)) allMessages.push(...messages);
+		}
 	};
 
 	const articles = [];
@@ -66,13 +66,19 @@ function waitForHuman(url: string): Promise<unknown[] | undefined> {
 		}
 
 		let script = extractChatGPT.toString();
-		script = script.replace(/^function[^\n]+{/, `(() => {${compressString}`);
+		script = script.replace(/^function[^{]+{/, `(() => {${compressString}`);
 		script += ")();";
 		script = script.replace(
-			"return allMessages;",
+			"return allMessages",
 			// compress the output to reduce manual transport friction
-			"compressString(JSON.stringify(allMessages)).then(console.log);",
+			"compressString(JSON.stringify(allMessages)).then(console.log)",
 		);
+
+		if (script.indexOf("__name") > -1) {
+			// https://github.com/evanw/esbuild/issues/2605
+			script = `__name = (fn) => fn;${script}`;
+		}
+
 		script = minify(script);
 
 		console.error(

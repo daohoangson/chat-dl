@@ -1,6 +1,6 @@
 {
 	"name": "chat-dl",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"files": ["bin", "dist"],
 	"bin": {
 		"chat-dl": "bin/chat-dl"
