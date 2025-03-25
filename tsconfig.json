@@ -8,5 +8,6 @@
 			"@/*": ["./src/*"]
 		},
 		"target": "ESNext"
-	}
+	},
+	"include": ["src"]
 }

@@ -10,7 +10,7 @@ interface Url2jsonArgs {
 	url: string;
 }
 
-export async function downloadFromUrl(url: string) {
+export async function downloadJsonFromUrl(url: string) {
 	const provider = getProviderByUrl(url);
 	let cacheValue: CacheValue<unknown>;
 	switch (provider) {
@@ -31,7 +31,7 @@ export async function downloadFromUrl(url: string) {
 }
 
 async function handler(args: Url2jsonArgs) {
-	const json = await downloadFromUrl(args.url);
+	const json = await downloadJsonFromUrl(args.url);
 	const outputPath = args.output === "-" ? process.stdout.fd : args.output;
 	writeFileSync(outputPath, JSON.stringify(json));
 }

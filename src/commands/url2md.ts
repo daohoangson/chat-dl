@@ -10,7 +10,7 @@ interface Url2mdArgs {
 	url: string;
 }
 
-async function renderFromUrl(url: string) {
+export async function renderMarkdownFromUrl(url: string) {
 	const provider = getProviderByUrl(url);
 	switch (provider) {
 		case "chatgpt":
@@ -25,7 +25,7 @@ async function renderFromUrl(url: string) {
 }
 
 async function handler(args: Url2mdArgs) {
-	const markdown = await renderFromUrl(args.url);
+	const markdown = await renderMarkdownFromUrl(args.url);
 	const outputPath = args.output === "-" ? process.stdout.fd : args.output;
 	writeFileSync(outputPath, markdown);
 }

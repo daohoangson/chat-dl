@@ -7,7 +7,7 @@ import { renderGrokFromJson } from "@/grok";
 import { JSONParser } from "@streamparser/json-node";
 import * as v from "valibot";
 import type { CommandModule } from "yargs";
-import type { downloadFromUrl } from "./url2json";
+import type { downloadJsonFromUrl } from "./url2json";
 
 interface Json2mdArgs {
 	input: string;
@@ -30,14 +30,14 @@ function handler(args: Json2mdArgs) {
 	}
 
 	stream.on("data", ({ value: input }) => {
-		const markdown = renderFromJson(input);
+		const markdown = renderMarkdownFromJson(input);
 		const outputPath = args.output === "-" ? process.stdout.fd : args.output;
 		writeFileSync(outputPath, markdown);
 	});
 }
 
-function renderFromJson(input: unknown) {
-	const parsed: Awaited<ReturnType<typeof downloadFromUrl>> =
+export function renderMarkdownFromJson(input: unknown) {
+	const parsed: Awaited<ReturnType<typeof downloadJsonFromUrl>> =
 		parseSchemaOrThrow(
 			v.object({
 				provider: v.picklist(["chatgpt", "claude", "grok"]),
