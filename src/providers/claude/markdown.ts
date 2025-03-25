@@ -65,6 +65,9 @@ function renderToolUseArtifact(
 		case "create": {
 			let extension: string;
 			switch (input.type) {
+				case "application/vnd.ant.code":
+					extension = "";
+					break;
 				case "application/vnd.ant.react":
 					extension = "jsx";
 					break;

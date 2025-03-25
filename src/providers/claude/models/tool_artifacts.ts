@@ -9,6 +9,7 @@ const inputCreateSchema = v.object({
 	title: v.string(),
 	type: v.picklist([
 		// TODO: add more types
+		"application/vnd.ant.code",
 		"application/vnd.ant.react",
 		"text/html",
 	]),
