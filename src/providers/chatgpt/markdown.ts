@@ -144,7 +144,7 @@ function getContentText(content: Content): string {
 			if (content.language === "json") {
 				text = JSON.stringify(JSON.parse(text), null, 2);
 			}
-			return `\`\`\`${content.language}\n${text}\n\`\`\``;
+			return `\`\`\`${content.language}\n${text.trim()}\n\`\`\``;
 		}
 		case "model_editable_context":
 			return content.model_set_context.trim();

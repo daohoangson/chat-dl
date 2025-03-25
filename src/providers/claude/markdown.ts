@@ -78,7 +78,7 @@ function renderToolUseArtifact(
 
 			artifacts.set(input.id, { title: input.title, extension });
 			markdown.push(`## Create artifact \`${input.title}\``);
-			markdown.push(`\`\`\`${extension}\n${input.content}\`\`\``);
+			markdown.push(`\`\`\`${extension}\n${input.content.trim()}\`\`\``);
 			return true;
 		}
 		case "rewrite": {
@@ -87,7 +87,7 @@ function renderToolUseArtifact(
 				throw new Error(`Unknown artifact id: ${input.id}`);
 			}
 			markdown.push(`## Rewrite artifact \`${item.title}\``);
-			markdown.push(`\`\`\`${item.extension}\n${input.content}\`\`\``);
+			markdown.push(`\`\`\`${item.extension}\n${input.content.trim()}\n\`\`\``);
 			return true;
 		}
 		case "update": {
@@ -98,7 +98,9 @@ function renderToolUseArtifact(
 			markdown.push(`## Update artifact #${item.title}`);
 			const oldStr = input.old_str.replaceAll(/\n/g, "\n-");
 			const newStr = input.new_str.replaceAll(/\n/g, "\n+");
-			markdown.push(`\`\`\`diff\n-${oldStr}\n+${newStr}\n\`\`\``);
+			markdown.push(
+				`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``,
+			);
 			return true;
 		}
 	}
