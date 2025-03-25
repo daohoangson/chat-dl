@@ -1,27 +1,10 @@
 import { writeFileSync } from "node:fs";
-import { renderChatGPTFromUrl } from "@/chatgpt";
-import { renderClaudeFromUrl } from "@/claude";
-import { getProviderByUrl } from "@/common";
-import { renderGrokFromUrl } from "@/grok";
+import { renderMarkdownFromUrl } from "@/providers";
 import type { CommandModule } from "yargs";
 
 interface Url2mdArgs {
 	output: string;
 	url: string;
-}
-
-export async function renderMarkdownFromUrl(url: string) {
-	const provider = getProviderByUrl(url);
-	switch (provider) {
-		case "chatgpt":
-			return await renderChatGPTFromUrl(url);
-		case "claude":
-			return await renderClaudeFromUrl(url);
-		case "grok":
-			return await renderGrokFromUrl(url);
-	}
-
-	throw new Error(`Unsupported URL: ${url}`);
 }
 
 async function handler(args: Url2mdArgs) {

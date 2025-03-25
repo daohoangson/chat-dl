@@ -4,16 +4,16 @@ import { downloadFromUrl } from "./browser";
 import { renderFromMessages } from "./markdown";
 import { messageSchema } from "./models";
 
-export async function downloadChatGPTFromUrl(url: string) {
+export async function downloadJsonFromUrl(url: string) {
 	return await cache(url, () => downloadFromUrl(url));
 }
 
-export function renderChatGPTFromJson(json: unknown) {
+export function renderMarkdownFromJson(json: unknown) {
 	const messages = parseSchemaOrThrow(v.array(messageSchema), json);
 	return renderFromMessages(messages);
 }
 
-export async function renderChatGPTFromUrl(url: string) {
-	const { value } = await downloadChatGPTFromUrl(url);
-	return renderChatGPTFromJson(value);
+export async function renderMarkdownFromUrl(url: string) {
+	const { value } = await downloadJsonFromUrl(url);
+	return renderMarkdownFromJson(value);
 }

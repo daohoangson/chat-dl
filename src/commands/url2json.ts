@@ -1,33 +1,10 @@
 import { writeFileSync } from "node:fs";
-import { downloadChatGPTFromUrl } from "@/chatgpt";
-import { downloadClaudeFromUrl } from "@/claude";
-import { type CacheValue, getProviderByUrl } from "@/common";
-import { downloadGrokFromUrl } from "@/grok";
+import { downloadJsonFromUrl } from "@/providers";
 import type { CommandModule } from "yargs";
 
 interface Url2jsonArgs {
 	output: string;
 	url: string;
-}
-
-export async function downloadJsonFromUrl(url: string) {
-	const provider = getProviderByUrl(url);
-	let cacheValue: CacheValue<unknown>;
-	switch (provider) {
-		case "chatgpt":
-			cacheValue = await downloadChatGPTFromUrl(url);
-			break;
-		case "claude":
-			cacheValue = await downloadClaudeFromUrl(url);
-			break;
-		case "grok":
-			cacheValue = await downloadGrokFromUrl(url);
-			break;
-		default:
-			throw new Error(`Unsupported URL: ${url}`);
-	}
-
-	return { provider, json: cacheValue.value };
 }
 
 async function handler(args: Url2jsonArgs) {

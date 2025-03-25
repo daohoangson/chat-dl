@@ -1,13 +1,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { Readable } from "node:stream";
-import { renderChatGPTFromJson } from "@/chatgpt";
-import { renderClaudeFromJson } from "@/claude";
-import { parseSchemaOrThrow } from "@/common";
-import { renderGrokFromJson } from "@/grok";
+import { renderMarkdownFromJson } from "@/providers";
 import { JSONParser } from "@streamparser/json-node";
-import * as v from "valibot";
 import type { CommandModule } from "yargs";
-import type { downloadJsonFromUrl } from "./url2json";
 
 interface Json2mdArgs {
 	input: string;
@@ -34,27 +29,6 @@ function handler(args: Json2mdArgs) {
 		const outputPath = args.output === "-" ? process.stdout.fd : args.output;
 		writeFileSync(outputPath, markdown);
 	});
-}
-
-export function renderMarkdownFromJson(input: unknown) {
-	const parsed: Awaited<ReturnType<typeof downloadJsonFromUrl>> =
-		parseSchemaOrThrow(
-			v.object({
-				provider: v.picklist(["chatgpt", "claude", "grok"]),
-				json: v.unknown(),
-			}),
-			input,
-		);
-
-	const { provider, json } = parsed;
-	switch (provider) {
-		case "chatgpt":
-			return renderChatGPTFromJson(json);
-		case "claude":
-			return renderClaudeFromJson(json);
-		case "grok":
-			return renderGrokFromJson(json);
-	}
 }
 
 export const json2md: CommandModule<unknown, Json2mdArgs> = {
