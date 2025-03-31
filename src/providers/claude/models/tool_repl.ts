@@ -12,7 +12,6 @@ export const toolUseSchema = v.object({
 
 export const toolResultSchema = v.object({
 	type: v.literal("tool_result"),
-	name,
 	content: v.array(
 		v.object({
 			text: v.pipe(

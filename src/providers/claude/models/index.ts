@@ -1,23 +1,25 @@
 import * as v from "valibot";
-import * as artifacts from "./tool_artifacts";
-import * as repl from "./tool_repl";
+export * as artifacts from "./tool_artifacts";
+export * as repl from "./tool_repl";
 
 const messageContentTextSchema = v.object({
 	type: v.literal("text"),
 	text: v.string(),
 });
 
-const messageContentToolUseSchema = v.variant("name", [
-	artifacts.toolUseSchema,
-	repl.toolUseSchema,
-]);
+const messageContentToolUseSchema = v.object({
+	type: v.literal("tool_use"),
+	name: v.string(),
+	input: v.unknown(),
+});
 
 export type ContentToolUse = v.InferOutput<typeof messageContentToolUseSchema>;
 
-const messageContentToolResultSchema = v.variant("name", [
-	artifacts.toolResultSchema,
-	repl.toolResultSchema,
-]);
+const messageContentToolResultSchema = v.object({
+	type: v.literal("tool_result"),
+	name: v.string(),
+	content: v.array(v.unknown()),
+});
 
 export type ContentToolResult = v.InferOutput<
 	typeof messageContentToolResultSchema

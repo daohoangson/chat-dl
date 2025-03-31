@@ -1,4 +1,11 @@
-import type { ContentToolResult, ContentToolUse, Message } from "./models";
+import * as v from "valibot";
+import {
+	artifacts as artifactModels,
+	repl,
+	type ContentToolResult,
+	type ContentToolUse,
+	type Message,
+} from "./models";
 
 interface RenderContext {
 	artifacts: Map<
@@ -45,10 +52,19 @@ function renderToolUse(ctx: RenderContext, content: ContentToolUse): boolean {
 	switch (name) {
 		case "artifacts":
 			return renderToolUseArtifact(ctx, content);
-		case "repl":
+		case "repl": {
+			const { input } = v.parse(repl.toolUseSchema, content);
 			ctx.markdown.push(`## Tool use: ${name}`);
 			ctx.markdown.push(`\`\`\`js\n${input.code.trim()}\n\`\`\``);
 			return true;
+		}
+		default: {
+			const str =
+				typeof input === "string" ? input : JSON.stringify(input, null, 2);
+			ctx.markdown.push(`## Tool use: ${name}`);
+			ctx.markdown.push(`\`\`\`\n${str.trim()}\n\`\`\``);
+			return true;
+		}
 	}
 }
 
@@ -56,9 +72,7 @@ function renderToolUseArtifact(
 	ctx: RenderContext,
 	content: ContentToolUse,
 ): boolean {
-	const { name, input } = content;
-	if (name !== "artifacts") return false;
-
+	const { input } = v.parse(artifactModels.toolUseSchema, content);
 	const { artifacts, markdown } = ctx;
 
 	switch (input.command) {
@@ -110,16 +124,18 @@ function renderToolResult(
 	ctx: RenderContext,
 	content: ContentToolResult,
 ): boolean {
-	const { name, content: result } = content;
-	switch (name) {
-		case "artifacts":
-			return false;
-		case "repl":
-			for (const item of result) {
-				ctx.markdown.push(
-					`\`\`\`json\n${JSON.stringify(item.text, null, 2)}\n\`\`\``,
-				);
-			}
-			return true;
+	const { name } = content;
+	if (name === "artifacts") {
+		return false;
 	}
+
+	const { content: result } = v.parse(repl.toolResultSchema, content);
+	for (const item of result) {
+		ctx.markdown.push("<details><summary>Tool result</summary>");
+		ctx.markdown.push(
+			`\`\`\`json\n${JSON.stringify(item.text, null, 2)}\n\`\`\``,
+		);
+		ctx.markdown.push("</details>\n\n");
+	}
+	return true;
 }
