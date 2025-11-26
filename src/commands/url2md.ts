@@ -15,8 +15,12 @@ async function handler(args: Url2mdArgs) {
 	const markdown = isLocalPath(args.url)
 		? renderMarkdownFromPath(args.url)
 		: await renderMarkdownFromUrl(args.url);
-	const outputPath = args.output === "-" ? process.stdout.fd : args.output;
-	writeFileSync(outputPath, markdown);
+
+	if (args.output === "-") {
+		process.stdout.write(markdown);
+	} else {
+		writeFileSync(args.output, markdown);
+	}
 }
 
 export const url2md: CommandModule<unknown, Url2mdArgs> = {
