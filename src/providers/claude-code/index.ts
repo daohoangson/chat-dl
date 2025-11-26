@@ -1,0 +1,37 @@
+import { readFileSync } from "node:fs";
+import { parseSchemaOrThrow } from "@/common";
+import { renderFromLines } from "./markdown";
+import { jsonlLineSchema, type JsonlLine } from "./models";
+
+export function parseJsonlFromPath(filePath: string): JsonlLine[] {
+	const content = readFileSync(filePath, "utf-8");
+	const lines = content.trim().split("\n");
+
+	const parsed: JsonlLine[] = [];
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+		if (line === undefined || !line.trim()) continue;
+
+		try {
+			const json: unknown = JSON.parse(line);
+			const validated = parseSchemaOrThrow(jsonlLineSchema, json);
+			parsed.push(validated);
+		} catch (error) {
+			console.error(`Error parsing line ${i + 1}:`, error);
+			throw error;
+		}
+	}
+
+	return parsed;
+}
+
+export function renderMarkdownFromPath(filePath: string): string {
+	const lines = parseJsonlFromPath(filePath);
+	return renderFromLines(lines);
+}
+
+export function renderMarkdownFromJson(json: unknown): string {
+	// For consistency with other providers, accept an array of lines
+	const lines = json as JsonlLine[];
+	return renderFromLines(lines);
+}
