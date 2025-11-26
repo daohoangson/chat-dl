@@ -8,15 +8,19 @@ import type {
 } from "./models";
 import { isAssistantLine, isUserLine } from "./models";
 
+type Sender = "human" | "assistant" | null;
+
 interface RenderContext {
 	markdown: string[];
 	toolResults: Map<string, ToolResultContent>;
+	lastSender: Sender;
 }
 
 export function renderFromLines(lines: JsonlLine[]): string {
 	const ctx: RenderContext = {
 		markdown: [],
 		toolResults: new Map(),
+		lastSender: null,
 	};
 
 	// First pass: collect all tool results from user messages
@@ -59,7 +63,10 @@ function renderUserLine(ctx: RenderContext, line: UserLine): void {
 		// Skip system instructions wrapped in XML tags
 		const cleanContent = cleanUserContent(content);
 		if (cleanContent.trim()) {
-			ctx.markdown.push("# Human");
+			if (ctx.lastSender !== "human") {
+				ctx.markdown.push("# Human");
+				ctx.lastSender = "human";
+			}
 			ctx.markdown.push(cleanContent);
 		}
 	}
@@ -97,7 +104,10 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 	}
 
 	if (parts.length > 0) {
-		ctx.markdown.push("# Claude Code");
+		if (ctx.lastSender !== "assistant") {
+			ctx.markdown.push("# Claude Code");
+			ctx.lastSender = "assistant";
+		}
 		ctx.markdown.push(...parts);
 	}
 }
