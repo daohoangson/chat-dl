@@ -44,92 +44,43 @@ const userContentSchema = v.union([
 	),
 ]);
 
-// Assistant message schema
-const assistantMessageSchema = v.object({
-	role: v.literal("assistant"),
+// Assistant message schema (only content is used)
+const assistantMessageSchema = v.looseObject({
 	content: assistantContentSchema,
-	model: v.optional(v.string()),
 });
 
-// User message schema
-const userMessageSchema = v.object({
-	role: v.literal("user"),
+// User message schema (only content is used)
+const userMessageSchema = v.looseObject({
 	content: userContentSchema,
 });
 
-// JSONL line types
+// JSONL line types - using looseObject to allow extra fields we don't use
 
-// Queue operation (enqueue/dequeue)
-const queueOperationLineSchema = v.object({
+// Queue operation (enqueue/dequeue) - skipped in rendering
+const queueOperationLineSchema = v.looseObject({
 	type: v.literal("queue-operation"),
-	operation: v.union([v.literal("enqueue"), v.literal("dequeue")]),
-	timestamp: v.string(),
-	sessionId: v.string(),
-	content: v.optional(v.string()),
 });
 
-// User line (user message)
-const userLineSchema = v.object({
+// User line (only type and message.content are used)
+const userLineSchema = v.looseObject({
 	type: v.literal("user"),
-	uuid: v.string(),
-	parentUuid: v.nullable(v.string()),
-	timestamp: v.string(),
-	sessionId: v.string(),
 	message: userMessageSchema,
-	cwd: v.optional(v.string()),
-	version: v.optional(v.string()),
-	gitBranch: v.optional(v.string()),
-	slug: v.optional(v.string()),
-	isSidechain: v.optional(v.boolean()),
-	userType: v.optional(v.string()),
 });
 
 export type UserLine = v.InferOutput<typeof userLineSchema>;
 
-// Assistant line (assistant message)
-const assistantLineSchema = v.object({
+// Assistant line (only type and message.content are used)
+const assistantLineSchema = v.looseObject({
 	type: v.literal("assistant"),
-	uuid: v.string(),
-	parentUuid: v.nullable(v.string()),
-	timestamp: v.string(),
-	sessionId: v.string(),
 	message: assistantMessageSchema,
-	requestId: v.optional(v.string()),
-	cwd: v.optional(v.string()),
-	version: v.optional(v.string()),
-	gitBranch: v.optional(v.string()),
-	slug: v.optional(v.string()),
-	isSidechain: v.optional(v.boolean()),
-	userType: v.optional(v.string()),
 });
 
 export type AssistantLine = v.InferOutput<typeof assistantLineSchema>;
 
-// System line (hooks, etc.)
-const systemLineSchema = v.object({
+// System line - skipped in rendering
+const systemLineSchema = v.looseObject({
 	type: v.literal("system"),
-	uuid: v.string(),
-	parentUuid: v.nullable(v.string()),
-	timestamp: v.string(),
-	sessionId: v.string(),
-	subtype: v.optional(v.string()),
-	hookCount: v.optional(v.number()),
-	hookInfos: v.optional(v.array(v.unknown())),
-	hookErrors: v.optional(v.array(v.unknown())),
-	preventedContinuation: v.optional(v.boolean()),
-	stopReason: v.optional(v.string()),
-	hasOutput: v.optional(v.boolean()),
-	level: v.optional(v.string()),
-	toolUseID: v.optional(v.string()),
-	cwd: v.optional(v.string()),
-	version: v.optional(v.string()),
-	gitBranch: v.optional(v.string()),
-	slug: v.optional(v.string()),
-	isSidechain: v.optional(v.boolean()),
-	userType: v.optional(v.string()),
 });
-
-export type SystemLine = v.InferOutput<typeof systemLineSchema>;
 
 // Union of all line types
 export const jsonlLineSchema = v.variant("type", [
@@ -148,8 +99,4 @@ export function isUserLine(line: JsonlLine): line is UserLine {
 
 export function isAssistantLine(line: JsonlLine): line is AssistantLine {
 	return line.type === "assistant";
-}
-
-export function isSystemLine(line: JsonlLine): line is SystemLine {
-	return line.type === "system";
 }
