@@ -59,9 +59,10 @@ const userContentSchema = v.union([
 	),
 ]);
 
-// Assistant message schema (only content is used)
+// Assistant message schema (content and model are used)
 const assistantMessageSchema = v.looseObject({
 	content: assistantContentSchema,
+	model: v.optional(v.string()),
 });
 
 // User message schema (only content is used)

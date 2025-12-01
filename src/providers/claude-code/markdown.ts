@@ -15,6 +15,7 @@ interface RenderContext {
 	markdown: string[];
 	toolResults: Map<string, ToolResultContent>;
 	lastSender: Sender;
+	lastModel: string | null;
 }
 
 export function renderFromLines(lines: JsonlLine[]): string {
@@ -22,6 +23,7 @@ export function renderFromLines(lines: JsonlLine[]): string {
 		markdown: [],
 		toolResults: new Map(),
 		lastSender: null,
+		lastModel: null,
 	};
 
 	// First pass: collect all tool results from user messages
@@ -90,7 +92,7 @@ function cleanUserContent(content: string): string {
 }
 
 function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
-	const { content } = line.message;
+	const { content, model } = line.message;
 	const parts: string[] = [];
 
 	for (const item of content) {
@@ -108,12 +110,42 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 	}
 
 	if (parts.length > 0) {
-		if (ctx.lastSender !== "assistant") {
-			ctx.markdown.push("# Claude Code");
+		// Show header if sender changed or model changed
+		if (ctx.lastSender !== "assistant" || (model && model !== ctx.lastModel)) {
+			const modelSuffix = model ? ` (${formatModelName(model)})` : "";
+			ctx.markdown.push(`# Claude Code${modelSuffix}`);
 			ctx.lastSender = "assistant";
+			if (model) ctx.lastModel = model;
 		}
 		ctx.markdown.push(...parts);
 	}
+}
+
+function formatModelName(model: string): string {
+	// Convert model ID to friendly name
+	// e.g., "claude-sonnet-4-5-20250929" -> "Sonnet 4.5"
+	if (model.includes("opus")) {
+		const match = model.match(/opus-?(\d+)?-?(\d+)?/);
+		if (match?.[1] && match?.[2]) {
+			return `Opus ${match[1]}.${match[2]}`;
+		}
+		return "Opus";
+	}
+	if (model.includes("sonnet")) {
+		const match = model.match(/sonnet-?(\d+)?-?(\d+)?/);
+		if (match?.[1] && match?.[2]) {
+			return `Sonnet ${match[1]}.${match[2]}`;
+		}
+		return "Sonnet";
+	}
+	if (model.includes("haiku")) {
+		const match = model.match(/haiku-?(\d+)?-?(\d+)?/);
+		if (match?.[1] && match?.[2]) {
+			return `Haiku ${match[1]}.${match[2]}`;
+		}
+		return "Haiku";
+	}
+	return model;
 }
 
 function renderTextContent(parts: string[], content: TextContent): void {
