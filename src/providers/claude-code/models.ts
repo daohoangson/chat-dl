@@ -32,6 +32,11 @@ const toolResultContentSchema = v.object({
 
 export type ToolResultContent = v.InferOutput<typeof toolResultContentSchema>;
 
+// Document content (e.g. PDF attachments)
+const documentContentSchema = v.looseObject({
+	type: v.literal("document"),
+});
+
 // User message content can be string or array with tool results
 const userContentSchema = v.union([
 	v.string(),
@@ -40,6 +45,8 @@ const userContentSchema = v.union([
 			toolResultContentSchema,
 			// Some user messages might have text content too
 			textContentSchema,
+			// Document attachments (PDF, etc.)
+			documentContentSchema,
 		]),
 	),
 ]);
