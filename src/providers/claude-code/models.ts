@@ -18,9 +18,17 @@ const textContentSchema = v.object({
 
 export type TextContent = v.InferOutput<typeof textContentSchema>;
 
-// Assistant message content is an array of text or tool_use
+// Thinking content in assistant messages (extended thinking)
+const thinkingContentSchema = v.looseObject({
+	type: v.literal("thinking"),
+	thinking: v.string(),
+});
+
+export type ThinkingContent = v.InferOutput<typeof thinkingContentSchema>;
+
+// Assistant message content is an array of text, tool_use, or thinking
 const assistantContentSchema = v.array(
-	v.variant("type", [textContentSchema, toolUseContentSchema]),
+	v.variant("type", [textContentSchema, toolUseContentSchema, thinkingContentSchema]),
 );
 
 // Tool result content in user messages

@@ -2,6 +2,7 @@ import type {
 	AssistantLine,
 	JsonlLine,
 	TextContent,
+	ThinkingContent,
 	ToolResultContent,
 	ToolUseContent,
 	UserLine,
@@ -100,6 +101,9 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 			case "tool_use":
 				renderToolUseContent(ctx, parts, item);
 				break;
+			case "thinking":
+				renderThinkingContent(parts, item);
+				break;
 		}
 	}
 
@@ -115,6 +119,14 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 function renderTextContent(parts: string[], content: TextContent): void {
 	if (content.text.trim()) {
 		parts.push(content.text);
+	}
+}
+
+function renderThinkingContent(parts: string[], content: ThinkingContent): void {
+	if (content.thinking.trim()) {
+		parts.push("<details><summary>Thinking</summary>");
+		parts.push(content.thinking.trim());
+		parts.push("</details>");
 	}
 }
 
