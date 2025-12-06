@@ -151,12 +151,12 @@ function accumulateUsage(ctx: RenderContext, usage: Usage): void {
 	ctx.usage.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
 }
 
-// Pricing per million tokens (as of Dec 2024)
+// Pricing per million tokens (as of Dec 2025)
 // Source: https://www.anthropic.com/pricing
 // Note: These prices may be outdated
 const PRICING = {
-	// Haiku 3.5
-	haiku: { input: 0.8, output: 4, cacheWrite: 1, cacheRead: 0.08 },
+	// Haiku 4.5
+	haiku: { input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1 },
 	// Sonnet 4/4.5
 	sonnet: { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
 	// Opus 4.5
@@ -198,7 +198,7 @@ function renderUsageSummary(ctx: RenderContext): void {
 
 	ctx.markdown.push(lines.join("\n"));
 	ctx.markdown.push(
-		"*Pricing based on Dec 2024 rates from anthropic.com/pricing and may be outdated.*",
+		"*Pricing based on Dec 2025 rates from anthropic.com/pricing and may be outdated.*",
 	);
 }
 
