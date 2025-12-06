@@ -151,8 +151,20 @@ function accumulateUsage(ctx: RenderContext, usage: Usage): void {
 	ctx.usage.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
 }
 
+// Pricing per million tokens (as of Dec 2024)
+// Source: https://www.anthropic.com/pricing
+// Note: These prices may be outdated
+const PRICING = {
+	// Haiku 3.5
+	haiku: { input: 0.8, output: 4, cacheWrite: 1, cacheRead: 0.08 },
+	// Sonnet 4/4.5
+	sonnet: { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
+	// Opus 4.5
+	opus: { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5 },
+};
+
 function renderUsageSummary(ctx: RenderContext): void {
-	const { usage } = ctx;
+	const { usage, lastModel } = ctx;
 	const totalInput = usage.inputTokens + usage.cacheCreationTokens + usage.cacheReadTokens;
 
 	if (totalInput === 0 && usage.outputTokens === 0) {
@@ -172,7 +184,30 @@ function renderUsageSummary(ctx: RenderContext): void {
 		lines.push(`- **Cache read:** ${formatNumber(usage.cacheReadTokens)}`);
 	}
 
+	// Calculate cost estimate
+	const pricing = getPricing(lastModel);
+	if (pricing) {
+		const cost =
+			(usage.inputTokens * pricing.input) / 1_000_000 +
+			(usage.outputTokens * pricing.output) / 1_000_000 +
+			(usage.cacheCreationTokens * pricing.cacheWrite) / 1_000_000 +
+			(usage.cacheReadTokens * pricing.cacheRead) / 1_000_000;
+
+		lines.push(`- **Estimated cost:** $${cost.toFixed(2)}`);
+	}
+
 	ctx.markdown.push(lines.join("\n"));
+	ctx.markdown.push(
+		"*Pricing based on Dec 2024 rates from anthropic.com/pricing and may be outdated.*",
+	);
+}
+
+function getPricing(model: string | null): (typeof PRICING)["sonnet"] | null {
+	if (!model) return PRICING.sonnet; // Default to sonnet
+	if (model.includes("opus")) return PRICING.opus;
+	if (model.includes("haiku")) return PRICING.haiku;
+	if (model.includes("sonnet")) return PRICING.sonnet;
+	return PRICING.sonnet; // Default
 }
 
 function formatNumber(n: number): string {
