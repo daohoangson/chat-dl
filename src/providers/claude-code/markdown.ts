@@ -5,17 +5,26 @@ import type {
 	ThinkingContent,
 	ToolResultContent,
 	ToolUseContent,
+	Usage,
 	UserLine,
 } from "./models";
 import { isAssistantLine, isUserLine } from "./models";
 
 type Sender = "human" | "assistant" | null;
 
+interface UsageStats {
+	inputTokens: number;
+	outputTokens: number;
+	cacheCreationTokens: number;
+	cacheReadTokens: number;
+}
+
 interface RenderContext {
 	markdown: string[];
 	toolResults: Map<string, ToolResultContent>;
 	lastSender: Sender;
 	lastModel: string | null;
+	usage: UsageStats;
 }
 
 export function renderFromLines(lines: JsonlLine[]): string {
@@ -24,6 +33,12 @@ export function renderFromLines(lines: JsonlLine[]): string {
 		toolResults: new Map(),
 		lastSender: null,
 		lastModel: null,
+		usage: {
+			inputTokens: 0,
+			outputTokens: 0,
+			cacheCreationTokens: 0,
+			cacheReadTokens: 0,
+		},
 	};
 
 	// First pass: collect all tool results from user messages
@@ -41,6 +56,9 @@ export function renderFromLines(lines: JsonlLine[]): string {
 			renderAssistantLine(ctx, line);
 		}
 	}
+
+	// Add usage summary at the end
+	renderUsageSummary(ctx);
 
 	return ctx.markdown.join("\n\n");
 }
@@ -92,8 +110,13 @@ function cleanUserContent(content: string): string {
 }
 
 function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
-	const { content, model } = line.message;
+	const { content, model, usage } = line.message;
 	const parts: string[] = [];
+
+	// Accumulate usage stats
+	if (usage) {
+		accumulateUsage(ctx, usage);
+	}
 
 	for (const item of content) {
 		switch (item.type) {
@@ -119,6 +142,41 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 		}
 		ctx.markdown.push(...parts);
 	}
+}
+
+function accumulateUsage(ctx: RenderContext, usage: Usage): void {
+	ctx.usage.inputTokens += usage.input_tokens ?? 0;
+	ctx.usage.outputTokens += usage.output_tokens ?? 0;
+	ctx.usage.cacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
+	ctx.usage.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
+}
+
+function renderUsageSummary(ctx: RenderContext): void {
+	const { usage } = ctx;
+	const totalInput = usage.inputTokens + usage.cacheCreationTokens + usage.cacheReadTokens;
+
+	if (totalInput === 0 && usage.outputTokens === 0) {
+		return; // No usage data
+	}
+
+	ctx.markdown.push("---");
+	ctx.markdown.push("## Usage Summary");
+
+	const lines = [
+		`- **Input tokens:** ${formatNumber(usage.inputTokens)}`,
+		`- **Output tokens:** ${formatNumber(usage.outputTokens)}`,
+	];
+
+	if (usage.cacheCreationTokens > 0 || usage.cacheReadTokens > 0) {
+		lines.push(`- **Cache creation:** ${formatNumber(usage.cacheCreationTokens)}`);
+		lines.push(`- **Cache read:** ${formatNumber(usage.cacheReadTokens)}`);
+	}
+
+	ctx.markdown.push(lines.join("\n"));
+}
+
+function formatNumber(n: number): string {
+	return n.toLocaleString();
 }
 
 function formatModelName(model: string): string {

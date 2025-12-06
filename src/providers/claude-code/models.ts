@@ -59,10 +59,21 @@ const userContentSchema = v.union([
 	),
 ]);
 
-// Assistant message schema (content and model are used)
+// Usage stats in assistant messages
+const usageSchema = v.looseObject({
+	input_tokens: v.optional(v.number()),
+	output_tokens: v.optional(v.number()),
+	cache_creation_input_tokens: v.optional(v.number()),
+	cache_read_input_tokens: v.optional(v.number()),
+});
+
+export type Usage = v.InferOutput<typeof usageSchema>;
+
+// Assistant message schema (content, model, and usage are used)
 const assistantMessageSchema = v.looseObject({
 	content: assistantContentSchema,
 	model: v.optional(v.string()),
+	usage: v.optional(usageSchema),
 });
 
 // User message schema (only content is used)
