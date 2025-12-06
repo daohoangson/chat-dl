@@ -160,7 +160,7 @@ const PRICING = {
 	// Sonnet 4/4.5
 	sonnet: { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
 	// Opus 4.5
-	opus: { input: 15, output: 75, cacheWrite: 18.75, cacheRead: 1.5 },
+	opus: { input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.5 },
 };
 
 function renderUsageSummary(ctx: RenderContext): void {
