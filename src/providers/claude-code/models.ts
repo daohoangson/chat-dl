@@ -109,12 +109,18 @@ const systemLineSchema = v.looseObject({
 	type: v.literal("system"),
 });
 
+// File history snapshot line - skipped in rendering
+const fileHistorySnapshotLineSchema = v.looseObject({
+	type: v.literal("file-history-snapshot"),
+});
+
 // Union of all line types
 export const jsonlLineSchema = v.variant("type", [
 	queueOperationLineSchema,
 	userLineSchema,
 	assistantLineSchema,
 	systemLineSchema,
+	fileHistorySnapshotLineSchema,
 ]);
 
 export type JsonlLine = v.InferOutput<typeof jsonlLineSchema>;
