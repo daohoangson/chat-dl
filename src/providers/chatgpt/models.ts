@@ -22,9 +22,19 @@ const contentCodeSchema = v.object({
 	text: v.string(),
 });
 
+const contentExecutionOutputSchema = v.object({
+	content_type: v.literal("execution_output"),
+	text: v.string(),
+});
+
 const contentModelEditableContextSchema = v.object({
 	content_type: v.literal("model_editable_context"),
 	model_set_context: v.string(),
+});
+
+const contentReasoningRecapSchema = v.object({
+	content_type: v.literal("reasoning_recap"),
+	content: v.string(),
 });
 
 const contentTextSchema = v.object({
@@ -32,10 +42,23 @@ const contentTextSchema = v.object({
 	parts: v.array(v.string()),
 });
 
+const contentThoughtsSchema = v.object({
+	content_type: v.literal("thoughts"),
+	thoughts: v.array(
+		v.object({
+			summary: v.string(),
+			content: v.string(),
+		}),
+	),
+});
+
 const contentSchema = v.variant("content_type", [
 	contentCodeSchema,
+	contentExecutionOutputSchema,
 	contentModelEditableContextSchema,
+	contentReasoningRecapSchema,
 	contentTextSchema,
+	contentThoughtsSchema,
 ]);
 
 export type Content = v.InferOutput<typeof contentSchema>;

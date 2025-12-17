@@ -146,13 +146,20 @@ function getContentText(content: Content): string {
 			}
 			return `\`\`\`${content.language}\n${text.trim()}\n\`\`\``;
 		}
+		case "execution_output":
+			return content.text.trim();
 		case "model_editable_context":
 			return content.model_set_context.trim();
+		case "reasoning_recap":
+			return content.content.trim();
 		case "text": {
 			return content.parts
 				.map((p) => p.trim())
 				.map((p) => p.replaceAll("\u{2028}", "\n"))
 				.join("\n");
+		}
+		case "thoughts": {
+			return content.thoughts.map((t) => t.content.trim()).join("\n\n");
 		}
 	}
 }
