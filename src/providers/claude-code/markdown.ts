@@ -1,3 +1,4 @@
+import { homedir, userInfo } from "node:os";
 import type {
 	AssistantLine,
 	JsonlLine,
@@ -25,9 +26,21 @@ interface RenderContext {
 	lastSender: Sender;
 	lastModel: string | null;
 	usage: UsageStats;
+	cwd: string | null;
+	homeDir: string;
+	username: string;
 }
 
 export function renderFromLines(lines: JsonlLine[]): string {
+	// Extract cwd from first user or assistant line that has it
+	let cwd: string | null = null;
+	for (const line of lines) {
+		if ((isUserLine(line) || isAssistantLine(line)) && line.cwd) {
+			cwd = line.cwd;
+			break;
+		}
+	}
+
 	const ctx: RenderContext = {
 		markdown: [],
 		toolResults: new Map(),
@@ -39,6 +52,9 @@ export function renderFromLines(lines: JsonlLine[]): string {
 			cacheCreationTokens: 0,
 			cacheReadTokens: 0,
 		},
+		cwd,
+		homeDir: homedir(),
+		username: userInfo().username,
 	};
 
 	// First pass: collect all tool results from user messages
@@ -265,12 +281,12 @@ function renderToolUseContent(
 	switch (name) {
 		case "Read": {
 			const typedInput = input as { file_path: string };
-			parts.push(`## Read \`${typedInput.file_path}\``);
+			parts.push(`## Read \`${maskPath(ctx, typedInput.file_path)}\``);
 			break;
 		}
 		case "Write": {
 			const typedInput = input as { file_path: string; content: string };
-			parts.push(`## Write \`${typedInput.file_path}\``);
+			parts.push(`## Write \`${maskPath(ctx, typedInput.file_path)}\``);
 			const ext = getFileExtension(typedInput.file_path);
 			parts.push(`\`\`\`${ext}\n${typedInput.content.trim()}\n\`\`\``);
 			break;
@@ -281,7 +297,7 @@ function renderToolUseContent(
 				old_string: string;
 				new_string: string;
 			};
-			parts.push(`## Edit \`${typedInput.file_path}\``);
+			parts.push(`## Edit \`${maskPath(ctx, typedInput.file_path)}\``);
 			const oldStr = typedInput.old_string.replace(/\n/g, "\n-");
 			const newStr = typedInput.new_string.replace(/\n/g, "\n+");
 			parts.push(`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``);
@@ -293,14 +309,14 @@ function renderToolUseContent(
 				? `: ${typedInput.description}`
 				: "";
 			parts.push(`## Bash${desc}`);
-			parts.push(`\`\`\`bash\n${typedInput.command.trim()}\n\`\`\``);
+			parts.push(`\`\`\`bash\n${maskText(ctx, typedInput.command.trim())}\n\`\`\``);
 			renderToolResultIfExists(ctx, parts, id);
 			break;
 		}
 		case "Glob":
 		case "Grep": {
 			const typedInput = input as { pattern: string; path?: string };
-			const pathStr = typedInput.path ? ` in \`${typedInput.path}\`` : "";
+			const pathStr = typedInput.path ? ` in \`${maskPath(ctx, typedInput.path)}\`` : "";
 			parts.push(`## ${name}: \`${typedInput.pattern}\`${pathStr}`);
 			renderToolResultIfExists(ctx, parts, id);
 			break;
@@ -332,7 +348,7 @@ function renderToolUseContent(
 			if (typedInput.subagent_type) {
 				parts.push(`Agent: ${typedInput.subagent_type}`);
 			}
-			parts.push(`\`\`\`\n${typedInput.prompt.trim()}\n\`\`\``);
+			parts.push(`\`\`\`\n${maskText(ctx, typedInput.prompt.trim())}\n\`\`\``);
 			break;
 		}
 		case "WebFetch":
@@ -351,7 +367,7 @@ function renderToolUseContent(
 			const str =
 				typeof input === "string" ? input : JSON.stringify(input, null, 2);
 			parts.push(`## Tool use: ${name}`);
-			parts.push(`\`\`\`\n${str.trim()}\n\`\`\``);
+			parts.push(`\`\`\`\n${maskText(ctx, str.trim())}\n\`\`\``);
 			break;
 		}
 	}
@@ -370,7 +386,7 @@ function renderToolResultIfExists(
 		const cleanedContent = cleanToolResultContent(content);
 		if (cleanedContent.trim()) {
 			parts.push("<details><summary>Output</summary>");
-			parts.push(`\`\`\`\n${cleanedContent.trim()}\n\`\`\``);
+			parts.push(`\`\`\`\n${maskText(ctx, cleanedContent.trim())}\n\`\`\``);
 			parts.push("</details>");
 		}
 	}
@@ -399,4 +415,38 @@ function getFileExtension(filePath: string): string {
 		return extMap[ext] ?? ext;
 	}
 	return "";
+}
+
+/**
+ * Mask paths and sensitive info by:
+ * 1. Replacing cwd with "."
+ * 2. Replacing $HOME with ~
+ * 3. Replacing username with <user>
+ */
+function maskPath(ctx: RenderContext, path: string): string {
+	let masked = path;
+
+	// First replace cwd (more specific) before homeDir (more general)
+	if (ctx.cwd) {
+		masked = masked.replaceAll(ctx.cwd, ".");
+	}
+
+	// Then replace home directory with ~
+	if (ctx.homeDir) {
+		masked = masked.replaceAll(ctx.homeDir, "~");
+	}
+
+	// Finally replace username with <user>
+	if (ctx.username) {
+		masked = masked.replaceAll(ctx.username, "<user>");
+	}
+
+	return masked;
+}
+
+/**
+ * Mask all paths in text content (for bash output, etc.)
+ */
+function maskText(ctx: RenderContext, text: string): string {
+	return maskPath(ctx, text);
 }

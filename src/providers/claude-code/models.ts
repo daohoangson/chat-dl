@@ -92,6 +92,7 @@ const queueOperationLineSchema = v.looseObject({
 const userLineSchema = v.looseObject({
 	type: v.literal("user"),
 	message: userMessageSchema,
+	cwd: v.optional(v.string()),
 });
 
 export type UserLine = v.InferOutput<typeof userLineSchema>;
@@ -100,6 +101,7 @@ export type UserLine = v.InferOutput<typeof userLineSchema>;
 const assistantLineSchema = v.looseObject({
 	type: v.literal("assistant"),
 	message: assistantMessageSchema,
+	cwd: v.optional(v.string()),
 });
 
 export type AssistantLine = v.InferOutput<typeof assistantLineSchema>;
