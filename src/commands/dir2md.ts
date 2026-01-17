@@ -26,6 +26,10 @@ function processDirectory(
 		const inputPath = join(inputDir, entry.name);
 
 		if (entry.isDirectory()) {
+			// Skip subagents directories (they are rendered inline in the parent)
+			if (entry.name === "subagents") {
+				continue;
+			}
 			const subResult = processDirectory(inputPath, outputDir, baseInputDir);
 			processed += subResult.processed;
 			skipped += subResult.skipped;

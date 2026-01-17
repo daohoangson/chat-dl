@@ -81,6 +81,17 @@ const userMessageSchema = v.looseObject({
 	content: userContentSchema,
 });
 
+// Tool use result from Task tool (contains agentId for subagent linking)
+// Can be an object with agentId, or a string (error message)
+const toolUseResultSchema = v.union([
+	v.looseObject({
+		agentId: v.optional(v.string()),
+	}),
+	v.string(), // Error messages
+]);
+
+export type ToolUseResult = v.InferOutput<typeof toolUseResultSchema>;
+
 // JSONL line types - using looseObject to allow extra fields we don't use
 
 // Queue operation (enqueue/dequeue) - skipped in rendering
@@ -88,11 +99,12 @@ const queueOperationLineSchema = v.looseObject({
 	type: v.literal("queue-operation"),
 });
 
-// User line (only type and message.content are used)
+// User line (type, message.content, and toolUseResult are used)
 const userLineSchema = v.looseObject({
 	type: v.literal("user"),
 	message: userMessageSchema,
 	cwd: v.optional(v.string()),
+	toolUseResult: v.optional(toolUseResultSchema),
 });
 
 export type UserLine = v.InferOutput<typeof userLineSchema>;

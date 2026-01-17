@@ -1,6 +1,7 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { basename, dirname, join } from "node:path";
 import { parseSchemaOrThrow } from "@/common";
-import { renderFromLines } from "./markdown";
+import { renderFromLines, type RenderOptions } from "./markdown";
 import { jsonlLineSchema, type JsonlLine } from "./models";
 
 export function parseJsonlFromPath(filePath: string): JsonlLine[] {
@@ -27,7 +28,20 @@ export function parseJsonlFromPath(filePath: string): JsonlLine[] {
 
 export function renderMarkdownFromPath(filePath: string): string {
 	const lines = parseJsonlFromPath(filePath);
-	return renderFromLines(lines);
+
+	// Check for subagents directory: <sessionId>/subagents/
+	// File path is like: /path/to/<sessionId>.jsonl
+	// Subagents dir is: /path/to/<sessionId>/subagents/
+	const dir = dirname(filePath);
+	const sessionId = basename(filePath, ".jsonl");
+	const subagentsDir = join(dir, sessionId, "subagents");
+
+	const options: RenderOptions = {};
+	if (existsSync(subagentsDir)) {
+		options.subagentsDir = subagentsDir;
+	}
+
+	return renderFromLines(lines, options);
 }
 
 export function renderMarkdownFromJson(json: unknown): string {
