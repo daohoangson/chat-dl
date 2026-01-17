@@ -1,0 +1,29 @@
+src/commands/index.ts
+  edf03ea1382f13d9 1
+src/commands/dir2md.ts
+  edf03ea1382f13d9 1-67
+src/providers/index.ts
+  edf03ea1382f13d9 93
+src/bin/chat-dl.ts
+  edf03ea1382f13d9 1,5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "57d95ff5a4ffb075e69eff1fbbf536376229f47d",
+  "prompts": {
+    "edf03ea1382f13d9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "26faece2-a251-4523-af4c-c76aa5b0cfaf",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Dao Hoang Son",
+      "messages": [],
+      "total_additions": 71,
+      "total_deletions": 2,
+      "accepted_lines": 71,
+      "overriden_lines": 0
+    }
+  }
+}
