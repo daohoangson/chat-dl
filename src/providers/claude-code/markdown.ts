@@ -95,17 +95,28 @@ function collectToolResults(ctx: RenderContext, line: UserLine): void {
 function renderUserLine(ctx: RenderContext, line: UserLine): void {
 	const { content } = line.message;
 
-	// Only render user messages with text content (not tool results)
+	let textContent: string;
+
 	if (typeof content === "string") {
-		// Skip system instructions wrapped in XML tags
-		const cleanContent = cleanUserContent(content);
-		if (cleanContent.trim()) {
-			if (ctx.lastSender !== "human") {
-				ctx.markdown.push("# Human");
-				ctx.lastSender = "human";
-			}
-			ctx.markdown.push(cleanContent);
+		textContent = content;
+	} else if (Array.isArray(content)) {
+		// Extract text items from array content (skip tool_result items)
+		textContent = content
+			.filter((item) => item.type === "text")
+			.map((item) => (item as TextContent).text)
+			.join("\n\n");
+	} else {
+		return;
+	}
+
+	// Skip system instructions wrapped in XML tags
+	const cleanContent = cleanUserContent(textContent);
+	if (cleanContent.trim()) {
+		if (ctx.lastSender !== "human") {
+			ctx.markdown.push("# Human");
+			ctx.lastSender = "human";
 		}
+		ctx.markdown.push(cleanContent);
 	}
 }
 
@@ -382,8 +393,26 @@ function renderToolResultIfExists(
 	if (!result) return;
 
 	const content = result.content;
+	let textContent: string | null = null;
+
 	if (typeof content === "string") {
-		const cleanedContent = cleanToolResultContent(content);
+		textContent = content;
+	} else if (Array.isArray(content)) {
+		// Extract text items from array content (e.g., [{type: "text", text: "..."}, {type: "image", ...}])
+		const textParts = content
+			.filter((item): item is { type: "text"; text: string } =>
+				typeof item === "object" && item !== null && item.type === "text" && typeof item.text === "string"
+			)
+			.map((item) => item.text);
+
+		if (textParts.length > 0) {
+			textContent = textParts.join("\n\n");
+		}
+		// Note: image items are intentionally skipped (not renderable in markdown export)
+	}
+
+	if (textContent) {
+		const cleanedContent = cleanToolResultContent(textContent);
 		if (cleanedContent.trim()) {
 			parts.push("<details><summary>Output</summary>");
 			parts.push(`\`\`\`\n${maskText(ctx, cleanedContent.trim())}\n\`\`\``);
