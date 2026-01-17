@@ -1,0 +1,23 @@
+src/commands/dir2md.ts
+  edf03ea1382f13d9 1-2,11-14,16-21,25-26,28-33,35,42,44-51,54,57-58,63-72,74,79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "788dfcef374b657017ed6a911598cdfcf7066d07",
+  "prompts": {
+    "edf03ea1382f13d9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "26faece2-a251-4523-af4c-c76aa5b0cfaf",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Dao Hoang Son",
+      "messages": [],
+      "total_additions": 48,
+      "total_deletions": 20,
+      "accepted_lines": 48,
+      "overriden_lines": 0
+    }
+  }
+}
