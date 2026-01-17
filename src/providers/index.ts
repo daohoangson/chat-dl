@@ -90,4 +90,4 @@ export function renderMarkdownFromPath(path: string) {
 	}
 }
 
-export { isLocalPath };
+export { getProviderByPath, isLocalPath };
