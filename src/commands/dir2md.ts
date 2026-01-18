@@ -1,4 +1,4 @@
-import { readdirSync, mkdirSync, writeFileSync, statSync } from "node:fs";
+import { readdirSync, mkdirSync, writeFileSync } from "node:fs";
 import { join, relative, dirname, basename, extname } from "node:path";
 import { getProviderByPath, renderMarkdownFromPath } from "@/providers";
 import type { CommandModule } from "yargs";

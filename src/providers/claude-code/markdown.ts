@@ -4,6 +4,7 @@ import { homedir, userInfo } from "node:os";
 import type {
 	AssistantLine,
 	JsonlLine,
+	SummaryLine,
 	TextContent,
 	ThinkingContent,
 	ToolResultContent,
@@ -11,7 +12,7 @@ import type {
 	Usage,
 	UserLine,
 } from "./models";
-import { isAssistantLine, isUserLine } from "./models";
+import { isAssistantLine, isSummaryLine, isUserLine } from "./models";
 
 type Sender = "human" | "assistant" | null;
 
@@ -80,7 +81,10 @@ export function renderFromLines(lines: JsonlLine[], options?: RenderOptions): st
 			renderUserLine(ctx, line);
 		} else if (isAssistantLine(line)) {
 			renderAssistantLine(ctx, line);
+		} else if (isSummaryLine(line)) {
+			renderSummaryLine(ctx, line);
 		}
+		// Other types (queue-operation, system, file-history-snapshot, progress) are skipped
 	}
 
 	// Add usage summary at the end
@@ -195,6 +199,14 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 			if (model) ctx.lastModel = model;
 		}
 		ctx.markdown.push(...parts);
+	}
+}
+
+function renderSummaryLine(ctx: RenderContext, line: SummaryLine): void {
+	// Render conversation summaries as a blockquote
+	if (line.summary?.trim()) {
+		ctx.markdown.push(`> **Summary:** ${line.summary}`);
+		ctx.lastSender = null; // Reset sender after summary
 	}
 }
 
@@ -427,17 +439,20 @@ function renderToolResultIfExists(
 	if (typeof content === "string") {
 		textContent = content;
 	} else if (Array.isArray(content)) {
-		// Extract text items from array content (e.g., [{type: "text", text: "..."}, {type: "image", ...}])
+		// Extract text items from array content (images are skipped - not portable in markdown)
 		const textParts = content
-			.filter((item): item is { type: "text"; text: string } =>
-				typeof item === "object" && item !== null && item.type === "text" && typeof item.text === "string"
+			.filter(
+				(item): item is { type: "text"; text: string } =>
+					typeof item === "object" &&
+					item !== null &&
+					item.type === "text" &&
+					typeof (item as { text?: string }).text === "string",
 			)
 			.map((item) => item.text);
 
 		if (textParts.length > 0) {
 			textContent = textParts.join("\n\n");
 		}
-		// Note: image items are intentionally skipped (not renderable in markdown export)
 	}
 
 	if (textContent) {

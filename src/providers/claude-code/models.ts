@@ -31,11 +31,26 @@ const assistantContentSchema = v.array(
 	v.variant("type", [textContentSchema, toolUseContentSchema, thinkingContentSchema]),
 );
 
+// Image content in tool results (e.g., screenshots)
+const imageContentSchema = v.looseObject({
+	type: v.literal("image"),
+	source: v.looseObject({
+		type: v.string(),
+		data: v.optional(v.string()),
+	}),
+});
+
+// Tool result content can be string, or array of text/image
+const toolResultInnerContentSchema = v.union([
+	v.string(),
+	v.array(v.union([textContentSchema, imageContentSchema])),
+]);
+
 // Tool result content in user messages
 const toolResultContentSchema = v.object({
 	type: v.literal("tool_result"),
 	tool_use_id: v.string(),
-	content: v.union([v.string(), v.unknown()]),
+	content: toolResultInnerContentSchema,
 });
 
 export type ToolResultContent = v.InferOutput<typeof toolResultContentSchema>;
@@ -128,6 +143,23 @@ const fileHistorySnapshotLineSchema = v.looseObject({
 	type: v.literal("file-history-snapshot"),
 });
 
+// Summary line - conversation summaries
+const summaryLineSchema = v.looseObject({
+	type: v.literal("summary"),
+	summary: v.string(),
+	leafUuid: v.optional(v.string()),
+});
+
+export type SummaryLine = v.InferOutput<typeof summaryLineSchema>;
+
+// Progress line - hook progress, agent progress events
+const progressLineSchema = v.looseObject({
+	type: v.literal("progress"),
+	data: v.optional(v.unknown()),
+});
+
+export type ProgressLine = v.InferOutput<typeof progressLineSchema>;
+
 // Union of all line types
 export const jsonlLineSchema = v.variant("type", [
 	queueOperationLineSchema,
@@ -135,6 +167,8 @@ export const jsonlLineSchema = v.variant("type", [
 	assistantLineSchema,
 	systemLineSchema,
 	fileHistorySnapshotLineSchema,
+	summaryLineSchema,
+	progressLineSchema,
 ]);
 
 export type JsonlLine = v.InferOutput<typeof jsonlLineSchema>;
@@ -146,4 +180,8 @@ export function isUserLine(line: JsonlLine): line is UserLine {
 
 export function isAssistantLine(line: JsonlLine): line is AssistantLine {
 	return line.type === "assistant";
+}
+
+export function isSummaryLine(line: JsonlLine): line is SummaryLine {
+	return line.type === "summary";
 }
