@@ -336,9 +336,16 @@ function renderToolUseContent(
 		}
 		case "Write": {
 			const typedInput = input as { file_path: string; content: string };
+			const lineCount = typedInput.content.split("\n").length;
 			parts.push(`## Write \`${maskPath(ctx, typedInput.file_path)}\``);
 			const ext = getFileExtension(typedInput.file_path);
-			parts.push(`\`\`\`${ext}\n${typedInput.content.trim()}\n\`\`\``);
+			// Truncate long files
+			if (lineCount > 50) {
+				const preview = typedInput.content.split("\n").slice(0, 30).join("\n");
+				parts.push(`\`\`\`${ext}\n${preview.trim()}\n// ... ${lineCount - 30} more lines\n\`\`\``);
+			} else {
+				parts.push(`\`\`\`${ext}\n${typedInput.content.trim()}\n\`\`\``);
+			}
 			break;
 		}
 		case "Edit": {
@@ -348,9 +355,22 @@ function renderToolUseContent(
 				new_string: string;
 			};
 			parts.push(`## Edit \`${maskPath(ctx, typedInput.file_path)}\``);
-			const oldStr = typedInput.old_string.replace(/\n/g, "\n-");
-			const newStr = typedInput.new_string.replace(/\n/g, "\n+");
-			parts.push(`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``);
+			const oldLines = typedInput.old_string.split("\n").length;
+			const newLines = typedInput.new_string.split("\n").length;
+			// For large edits, show a summary
+			if (oldLines > 30 || newLines > 30) {
+				parts.push(`*Replaced ${oldLines} lines with ${newLines} lines*`);
+				// Show first few lines of the diff
+				const oldPreview = typedInput.old_string.split("\n").slice(0, 10).join("\n-");
+				const newPreview = typedInput.new_string.split("\n").slice(0, 10).join("\n+");
+				parts.push("<details><summary>Diff preview</summary>");
+				parts.push(`\`\`\`diff\n-${oldPreview.trimEnd()}\n...\n+${newPreview.trimEnd()}\n...\n\`\`\``);
+				parts.push("</details>");
+			} else {
+				const oldStr = typedInput.old_string.replace(/\n/g, "\n-");
+				const newStr = typedInput.new_string.replace(/\n/g, "\n+");
+				parts.push(`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``);
+			}
 			break;
 		}
 		case "Bash": {
@@ -403,15 +423,46 @@ function renderToolUseContent(
 			renderSubagentIfExists(ctx, parts, id);
 			break;
 		}
-		case "WebFetch":
+		case "WebFetch": {
+			const typedInput = input as { url?: string; prompt?: string };
+			parts.push(`## WebFetch: ${typedInput.url ?? "unknown"}`);
+			if (typedInput.prompt) {
+				parts.push(`> ${typedInput.prompt.split("\n")[0]}`);
+			}
+			renderToolResultIfExists(ctx, parts, id);
+			break;
+		}
 		case "WebSearch": {
-			const typedInput = input as { url?: string; query?: string };
-			if (typedInput.url) {
-				parts.push(`## ${name}: ${typedInput.url}`);
-			} else if (typedInput.query) {
-				parts.push(`## ${name}: ${typedInput.query}`);
-			} else {
-				parts.push(`## ${name}`);
+			const typedInput = input as { query?: string };
+			parts.push(`## WebSearch: ${typedInput.query ?? "unknown"}`);
+			renderToolResultIfExists(ctx, parts, id);
+			break;
+		}
+		case "mcp__conductor__AskUserQuestion":
+		case "AskUserQuestion": {
+			const typedInput = input as {
+				questions: Array<{ question: string; options?: string[] }>;
+			};
+			parts.push("## Question for User");
+			for (const q of typedInput.questions ?? []) {
+				parts.push(`**${q.question}**`);
+				if (q.options?.length) {
+					parts.push(q.options.map((opt, i) => `${i + 1}. ${opt}`).join("\n"));
+				}
+			}
+			break;
+		}
+		case "EnterPlanMode": {
+			parts.push("## Entering Plan Mode");
+			parts.push("*Switching to planning mode to design implementation approach...*");
+			break;
+		}
+		case "ExitPlanMode": {
+			const typedInput = input as { plan?: string };
+			parts.push("## Implementation Plan");
+			if (typedInput.plan) {
+				// Render the plan as markdown (it's already formatted)
+				parts.push(typedInput.plan);
 			}
 			break;
 		}
