@@ -1,6 +1,5 @@
 import { readFileSync } from "node:fs";
 import * as v from "valibot";
-import { parseSchemaOrThrow } from "@/common";
 import { renderFromLines } from "./markdown";
 import { codexCliLineSchema, type CodexCliLine } from "./models";
 
@@ -15,7 +14,7 @@ export function parseJsonlFromPath(filePath: string): CodexCliLine[] {
 
 		try {
 			const json: unknown = JSON.parse(line);
-			const validated = parseSchemaOrThrow(codexCliLineSchema, json);
+			const validated = v.parse(codexCliLineSchema, json);
 			parsed.push(validated);
 		} catch (error) {
 			const message =
@@ -33,6 +32,6 @@ export function renderMarkdownFromPath(filePath: string): string {
 }
 
 export function renderMarkdownFromJson(json: unknown): string {
-	const lines = parseSchemaOrThrow(v.array(codexCliLineSchema), json);
+	const lines = v.parse(v.array(codexCliLineSchema), json);
 	return renderFromLines(lines);
 }
