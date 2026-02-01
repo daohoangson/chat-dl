@@ -1,13 +1,14 @@
 import type {
 	CodexCliLine,
-	FunctionCallPayload,
 	MessagePayload,
 	ReasoningPayload,
+	TokenUsage,
 	WebSearchCallPayload,
 } from "./models";
 import {
 	isCustomToolCallOutputPayload,
 	isCustomToolCallPayload,
+	isEventMsgLine,
 	isFunctionCallOutputPayload,
 	isFunctionCallPayload,
 	isMessagePayload,
@@ -26,10 +27,20 @@ interface RenderContext {
 	currentModel: string | null;
 	toolOutputs: Map<string, string>;
 	renderedOutputs: Set<string>;
+	usage: UsageStats;
+	usageFromTotals: UsageStats | null;
 }
 
 const MAX_OUTPUT_LINES = 200;
 const PREVIEW_OUTPUT_LINES = 120;
+
+interface UsageStats {
+	inputTokens: number;
+	outputTokens: number;
+	cachedInputTokens: number;
+	reasoningTokens: number;
+	totalTokens: number;
+}
 
 export function renderFromLines(lines: CodexCliLine[]): string {
 	const ctx: RenderContext = {
@@ -39,10 +50,16 @@ export function renderFromLines(lines: CodexCliLine[]): string {
 		currentModel: null,
 		toolOutputs: new Map(),
 		renderedOutputs: new Set(),
+		usage: emptyUsageStats(),
+		usageFromTotals: null,
 	};
 
-	// First pass: collect tool outputs
+	// First pass: collect tool outputs and usage stats
 	for (const line of lines) {
+		if (isEventMsgLine(line)) {
+			collectUsage(ctx, line);
+			continue;
+		}
 		if (!isResponseItemLine(line)) continue;
 		const payload = line.payload;
 		if (isFunctionCallOutputPayload(payload)) {
@@ -98,6 +115,8 @@ export function renderFromLines(lines: CodexCliLine[]): string {
 			renderWebSearchCall(ctx, payload);
 		}
 	}
+
+	renderUsageSummary(ctx);
 
 	return ctx.markdown.join("\n\n");
 }
@@ -186,6 +205,90 @@ function renderWebSearchCall(
 		const formatted = formatJsonLike(payload.action);
 		ctx.markdown.push(formatCodeBlock(formatted.text, formatted.language));
 	}
+}
+
+function emptyUsageStats(): UsageStats {
+	return {
+		inputTokens: 0,
+		outputTokens: 0,
+		cachedInputTokens: 0,
+		reasoningTokens: 0,
+		totalTokens: 0,
+	};
+}
+
+function collectUsage(ctx: RenderContext, line: CodexCliLine): void {
+	if (!isEventMsgLine(line)) return;
+	if (line.payload.type !== "token_count") return;
+	const info = line.payload.info;
+	if (!info || info === null || typeof info !== "object") return;
+
+	const totalUsage = (info as { total_token_usage?: TokenUsage }).total_token_usage;
+	if (totalUsage) {
+		ctx.usageFromTotals = toUsageStats(totalUsage);
+		return;
+	}
+
+	const lastUsage = (info as { last_token_usage?: TokenUsage }).last_token_usage;
+	if (lastUsage) {
+		addUsage(ctx.usage, lastUsage);
+	}
+}
+
+function toUsageStats(usage: TokenUsage): UsageStats {
+	return {
+		inputTokens: usage.input_tokens ?? 0,
+		outputTokens: usage.output_tokens ?? 0,
+		cachedInputTokens: usage.cached_input_tokens ?? 0,
+		reasoningTokens: usage.reasoning_output_tokens ?? 0,
+		totalTokens: usage.total_tokens ?? 0,
+	};
+}
+
+function addUsage(target: UsageStats, usage: TokenUsage): void {
+	target.inputTokens += usage.input_tokens ?? 0;
+	target.outputTokens += usage.output_tokens ?? 0;
+	target.cachedInputTokens += usage.cached_input_tokens ?? 0;
+	target.reasoningTokens += usage.reasoning_output_tokens ?? 0;
+	target.totalTokens += usage.total_tokens ?? 0;
+}
+
+function renderUsageSummary(ctx: RenderContext): void {
+	const usage = ctx.usageFromTotals ?? ctx.usage;
+	const hasUsage =
+		usage.inputTokens > 0 ||
+		usage.outputTokens > 0 ||
+		usage.cachedInputTokens > 0 ||
+		usage.reasoningTokens > 0 ||
+		usage.totalTokens > 0;
+
+	if (!hasUsage) return;
+
+	ctx.markdown.push("---");
+	ctx.markdown.push("## Usage Summary");
+
+	const lines = [
+		`- **Input tokens:** ${formatNumber(usage.inputTokens)}`,
+		`- **Output tokens:** ${formatNumber(usage.outputTokens)}`,
+	];
+
+	if (usage.cachedInputTokens > 0) {
+		lines.push(`- **Cached input tokens:** ${formatNumber(usage.cachedInputTokens)}`);
+	}
+
+	if (usage.reasoningTokens > 0) {
+		lines.push(`- **Reasoning tokens:** ${formatNumber(usage.reasoningTokens)}`);
+	}
+
+	if (usage.totalTokens > 0) {
+		lines.push(`- **Total tokens:** ${formatNumber(usage.totalTokens)}`);
+	}
+
+	ctx.markdown.push(lines.join("\n"));
+}
+
+function formatNumber(value: number): string {
+	return value.toLocaleString();
 }
 
 function ensureHumanHeader(ctx: RenderContext): void {

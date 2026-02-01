@@ -111,8 +111,24 @@ const responseItemLineSchema = v.looseObject({
 
 export type ResponseItemLine = v.InferOutput<typeof responseItemLineSchema>;
 
+const tokenUsageSchema = v.looseObject({
+	input_tokens: v.optional(v.number()),
+	cached_input_tokens: v.optional(v.number()),
+	output_tokens: v.optional(v.number()),
+	reasoning_output_tokens: v.optional(v.number()),
+	total_tokens: v.optional(v.number()),
+});
+
+const tokenCountInfoSchema = v.looseObject({
+	total_token_usage: v.optional(tokenUsageSchema),
+	last_token_usage: v.optional(tokenUsageSchema),
+	model_context_window: v.optional(v.number()),
+});
+
 const eventMsgPayloadSchema = v.looseObject({
 	type: v.string(),
+	info: v.optional(v.union([tokenCountInfoSchema, v.null()])),
+	rate_limits: v.optional(v.unknown()),
 });
 
 const eventMsgLineSchema = v.looseObject({
@@ -122,6 +138,8 @@ const eventMsgLineSchema = v.looseObject({
 });
 
 export type EventMsgLine = v.InferOutput<typeof eventMsgLineSchema>;
+export type TokenUsage = v.InferOutput<typeof tokenUsageSchema>;
+export type TokenCountInfo = v.InferOutput<typeof tokenCountInfoSchema>;
 
 const turnContextLineSchema = v.looseObject({
 	type: v.literal("turn_context"),
@@ -167,6 +185,10 @@ export type CodexCliLine = v.InferOutput<typeof codexCliLineSchema>;
 
 export function isResponseItemLine(line: CodexCliLine): line is ResponseItemLine {
 	return line.type === "response_item";
+}
+
+export function isEventMsgLine(line: CodexCliLine): line is EventMsgLine {
+	return line.type === "event_msg";
 }
 
 export function isTurnContextLine(line: CodexCliLine): line is TurnContextLine {
