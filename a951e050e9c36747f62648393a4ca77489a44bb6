@@ -1,0 +1,29 @@
+src/providers/gemini-cli/models.ts
+  98c8c099bda252d3 1-106
+src/providers/gemini-cli/index.ts
+  98c8c099bda252d3 1-50
+src/providers/gemini-cli/markdown.ts
+  98c8c099bda252d3 1-88
+src/providers/gemini-cli/test-parse.ts
+  98c8c099bda252d3 1-39
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "a951e050e9c36747f62648393a4ca77489a44bb6",
+  "prompts": {
+    "98c8c099bda252d3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "977e1eb5-49f0-42bc-9670-ba73064fe5ed",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 294,
+      "total_deletions": 11,
+      "accepted_lines": 283,
+      "overriden_lines": 0
+    }
+  }
+}
