@@ -1,4 +1,9 @@
-export type Provider = "grok" | "chatgpt" | "claude" | "claude-code";
+export type Provider =
+	| "grok"
+	| "chatgpt"
+	| "claude"
+	| "claude-code"
+	| "gemini-cli";
 
 export function getProviderByUrl(url: string): Provider | undefined {
 	const hostname = new URL(url).hostname;
@@ -27,12 +32,20 @@ export function getProviderByPath(path: string): Provider | undefined {
 	if (path.endsWith(".jsonl")) {
 		return "claude-code";
 	}
+	// Gemini CLI session files are JSON with pattern: session-*.json
+	if (path.endsWith(".json") && path.includes("/chats/session-")) {
+		return "gemini-cli";
+	}
 	return;
 }
 
 export function isLocalPath(input: string): boolean {
 	// Check if input is a local file path (not a URL)
-	if (input.startsWith("/") || input.startsWith("./") || input.startsWith("../")) {
+	if (
+		input.startsWith("/") ||
+		input.startsWith("./") ||
+		input.startsWith("../")
+	) {
 		return true;
 	}
 	// Windows paths
