@@ -42,6 +42,14 @@ interface UsageStats {
 	totalTokens: number;
 }
 
+interface PricingInfo {
+	modelLabel: string;
+	input: number;
+	cacheRead: number;
+	output: number;
+	note?: string;
+}
+
 export function renderFromLines(lines: CodexCliLine[]): string {
 	const ctx: RenderContext = {
 		markdown: [],
@@ -284,11 +292,90 @@ function renderUsageSummary(ctx: RenderContext): void {
 		lines.push(`- **Total tokens:** ${formatNumber(usage.totalTokens)}`);
 	}
 
+	const pricing = getPricing(ctx.lastModel ?? ctx.currentModel);
+	if (pricing) {
+		const billableOutputTokens = usage.outputTokens + usage.reasoningTokens;
+		const cachedInputRate = pricing.cacheRead;
+		const cost =
+			(usage.inputTokens * pricing.input +
+				usage.cachedInputTokens * cachedInputRate +
+				billableOutputTokens * pricing.output) /
+			1_000_000;
+
+		lines.push(`- **Estimated cost:** $${cost.toFixed(2)} (${pricing.modelLabel})`);
+		if (pricing.note) {
+			lines.push(`- **Pricing note:** ${pricing.note}`);
+		}
+		if (usage.reasoningTokens > 0) {
+			lines.push(
+				`- **Billed output tokens:** ${formatNumber(billableOutputTokens)}`,
+			);
+		}
+	}
+
 	ctx.markdown.push(lines.join("\n"));
+
+	if (usage.reasoningTokens > 0) {
+		ctx.markdown.push(
+			"*Reasoning tokens are billed as output tokens in OpenAI pricing.*",
+		);
+	}
 }
 
 function formatNumber(value: number): string {
 	return value.toLocaleString();
+}
+
+function getPricing(model: string | null): PricingInfo | null {
+	if (!model) return null;
+	const normalized = model.toLowerCase();
+
+	if (normalized.startsWith("gpt-5.2-codex")) {
+		return {
+			modelLabel: "gpt-5.2-codex",
+			input: 1.75,
+			cacheRead: 0.17,
+			output: 14,
+		};
+	}
+
+	if (normalized.startsWith("gpt-5.1-codex-max")) {
+		return {
+			modelLabel: "gpt-5.1-codex-max",
+			input: 1.25,
+			cacheRead: 0.13,
+			output: 10,
+		};
+	}
+
+	if (normalized.startsWith("gpt-5.1-codex-mini")) {
+		return {
+			modelLabel: "gpt-5.1-codex-mini",
+			input: 0.25,
+			cacheRead: 0.03,
+			output: 2,
+		};
+	}
+
+	if (normalized.startsWith("gpt-5-codex")) {
+		return {
+			modelLabel: "gpt-5-codex",
+			input: 1.25,
+			cacheRead: 0.13,
+			output: 10,
+		};
+	}
+
+	if (normalized.startsWith("gpt-5")) {
+		return {
+			modelLabel: "gpt-5",
+			input: 1.25,
+			cacheRead: 0.13,
+			output: 10,
+		};
+	}
+
+	return null;
 }
 
 function ensureHumanHeader(ctx: RenderContext): void {
