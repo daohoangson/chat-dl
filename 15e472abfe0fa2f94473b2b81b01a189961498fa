@@ -1,0 +1,29 @@
+src/commands/index.ts
+  98c8c099bda252d3 1
+src/providers/index.ts
+  98c8c099bda252d3 9,36,48-49,68-70
+src/bin/chat-dl.ts
+  98c8c099bda252d3 1,5
+src/commands/gemini2md.ts
+  98c8c099bda252d3 1-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "15e472abfe0fa2f94473b2b81b01a189961498fa",
+  "prompts": {
+    "98c8c099bda252d3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "977e1eb5-49f0-42bc-9670-ba73064fe5ed",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 45,
+      "total_deletions": 2,
+      "accepted_lines": 45,
+      "overriden_lines": 0
+    }
+  }
+}
