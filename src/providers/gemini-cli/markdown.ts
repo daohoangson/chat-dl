@@ -308,8 +308,34 @@ function accumulateUsage(ctx: RenderContext, tokens: Tokens): void {
 	ctx.usage.thoughtTokens += tokens.thoughts ?? 0;
 }
 
+// Pricing per million tokens (as of Jan 2026)
+// Source: https://ai.google.dev/pricing
+// Note: These prices may be outdated
+const PRICING = {
+	// Gemini 2.5 Flash
+	"gemini-2.5-flash": { input: 0.3, output: 2.5, cacheRead: 0.07 },
+	// Gemini 3 Flash Preview
+	"gemini-3-flash-preview": { input: 0.5, output: 3.0, cacheRead: 0.05 },
+	// Gemini 3 Pro Preview
+	"gemini-3-pro-preview": { input: 2.0, output: 12.0, cacheRead: 0.2 },
+};
+
+function getPricing(
+	model: string | null,
+): (typeof PRICING)["gemini-2.5-flash"] | null {
+	if (!model) return null;
+	if (model in PRICING) {
+		return PRICING[model as keyof typeof PRICING];
+	}
+	// Try partial matching
+	if (model.includes("3-pro")) return PRICING["gemini-3-pro-preview"];
+	if (model.includes("3-flash")) return PRICING["gemini-3-flash-preview"];
+	if (model.includes("2.5-flash")) return PRICING["gemini-2.5-flash"];
+	return null;
+}
+
 function renderUsageSummary(ctx: RenderContext): void {
-	const { usage } = ctx;
+	const { usage, lastModel } = ctx;
 	const totalInput = usage.inputTokens + usage.cachedTokens;
 
 	if (totalInput === 0 && usage.outputTokens === 0) {
@@ -332,7 +358,23 @@ function renderUsageSummary(ctx: RenderContext): void {
 		lines.push(`- **Thinking tokens:** ${formatNumber(usage.thoughtTokens)}`);
 	}
 
+	// Calculate cost estimate
+	const pricing = getPricing(lastModel);
+	if (pricing) {
+		const cost =
+			(usage.inputTokens * pricing.input) / 1_000_000 +
+			(usage.outputTokens * pricing.output) / 1_000_000 +
+			(usage.cachedTokens * pricing.cacheRead) / 1_000_000;
+
+		lines.push(`- **Estimated cost:** $${cost.toFixed(2)}`);
+	}
+
 	ctx.markdown.push(lines.join("\n"));
+	if (pricing) {
+		ctx.markdown.push(
+			"*Pricing based on Jan 2026 rates from ai.google.dev/pricing and may be outdated.*",
+		);
+	}
 }
 
 function formatNumber(n: number): string {
