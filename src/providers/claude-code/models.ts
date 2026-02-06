@@ -40,10 +40,16 @@ const imageContentSchema = v.looseObject({
 	}),
 });
 
-// Tool result content can be string, or array of text/image
+// Tool reference content in tool results (e.g., MCP tool listings)
+const toolReferenceContentSchema = v.looseObject({
+	type: v.literal("tool_reference"),
+	tool_name: v.string(),
+});
+
+// Tool result content can be string, or array of text/image/tool_reference
 const toolResultInnerContentSchema = v.union([
 	v.string(),
-	v.array(v.union([textContentSchema, imageContentSchema])),
+	v.array(v.union([textContentSchema, imageContentSchema, toolReferenceContentSchema])),
 ]);
 
 // Tool result content in user messages
