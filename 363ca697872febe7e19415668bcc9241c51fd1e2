@@ -1,0 +1,23 @@
+src/providers/claude-code/models.ts
+  11d6ad7c743687d2 43-49,52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "363ca697872febe7e19415668bcc9241c51fd1e2",
+  "prompts": {
+    "11d6ad7c743687d2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "85c40488-5787-46e0-849d-5d5295359e4c",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 8,
+      "total_deletions": 2,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    }
+  }
+}
