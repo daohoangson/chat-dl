@@ -1,0 +1,23 @@
+src/providers/gemini-cli/markdown.ts
+  cc60b63579daf8e0 311-336,338,361-371,373-377
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "8f2b611b4950cb555d1947ddd6ef611ac64c0f5d",
+  "prompts": {
+    "cc60b63579daf8e0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7f012f5f-3b82-4f99-b618-dabf5b5d096c",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 43,
+      "total_deletions": 1,
+      "accepted_lines": 43,
+      "overriden_lines": 0
+    }
+  }
+}

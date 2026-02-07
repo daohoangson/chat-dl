@@ -1,0 +1,29 @@
+src/commands/dir2md.ts
+  c0b493428ea6c244 29-32
+src/providers/claude-code/markdown.ts
+  c0b493428ea6c244 1-2,28,35,38-42,55,67,70,94-110,390-391,458-500
+src/providers/claude-code/index.ts
+  c0b493428ea6c244 1-2,4,31-44
+src/providers/claude-code/models.ts
+  c0b493428ea6c244 84-94,102,107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "3cc50136261a3a05eb42262a5db00b554eeb16c4",
+  "prompts": {
+    "c0b493428ea6c244": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d6e79cc2-a44c-445d-a557-408a37f9352d",
+        "model": "claude-opus-4-5-20251101"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 113,
+      "total_deletions": 11,
+      "accepted_lines": 108,
+      "overriden_lines": 0
+    }
+  }
+}
