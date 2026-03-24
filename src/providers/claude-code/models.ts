@@ -125,6 +125,7 @@ const userLineSchema = v.looseObject({
 	type: v.literal("user"),
 	message: userMessageSchema,
 	cwd: v.optional(v.string()),
+	timestamp: v.optional(v.string()),
 	toolUseResult: v.optional(toolUseResultSchema),
 });
 
@@ -135,6 +136,7 @@ const assistantLineSchema = v.looseObject({
 	type: v.literal("assistant"),
 	message: assistantMessageSchema,
 	cwd: v.optional(v.string()),
+	timestamp: v.optional(v.string()),
 });
 
 export type AssistantLine = v.InferOutput<typeof assistantLineSchema>;
@@ -166,6 +168,11 @@ const progressLineSchema = v.looseObject({
 
 export type ProgressLine = v.InferOutput<typeof progressLineSchema>;
 
+// Last-prompt line - stores the last user prompt for session resume
+const lastPromptLineSchema = v.looseObject({
+	type: v.literal("last-prompt"),
+});
+
 // Union of all line types
 export const jsonlLineSchema = v.variant("type", [
 	queueOperationLineSchema,
@@ -175,6 +182,7 @@ export const jsonlLineSchema = v.variant("type", [
 	fileHistorySnapshotLineSchema,
 	summaryLineSchema,
 	progressLineSchema,
+	lastPromptLineSchema,
 ]);
 
 export type JsonlLine = v.InferOutput<typeof jsonlLineSchema>;

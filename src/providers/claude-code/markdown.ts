@@ -29,6 +29,8 @@ interface RenderContext {
 	agentIds: Map<string, string>; // tool_use_id -> agentId
 	lastSender: Sender;
 	lastModel: string | null;
+	lastUserTimestamp: string | null;
+	lastAssistantTimestamp: string | null;
 	usage: UsageStats;
 	cwd: string | null;
 	homeDir: string;
@@ -56,6 +58,8 @@ export function renderFromLines(lines: JsonlLine[], options?: RenderOptions): st
 		agentIds: new Map(),
 		lastSender: null,
 		lastModel: null,
+		lastUserTimestamp: null,
+		lastAssistantTimestamp: null,
 		usage: {
 			inputTokens: 0,
 			outputTokens: 0,
@@ -86,6 +90,9 @@ export function renderFromLines(lines: JsonlLine[], options?: RenderOptions): st
 		}
 		// Other types (queue-operation, system, file-history-snapshot, progress) are skipped
 	}
+
+	// Emit runtime for the last agent turn
+	renderTurnRuntime(ctx);
 
 	// Add usage summary at the end
 	renderUsageSummary(ctx);
@@ -144,8 +151,14 @@ function renderUserLine(ctx: RenderContext, line: UserLine): void {
 	const cleanContent = cleanUserContent(textContent);
 	if (cleanContent.trim()) {
 		if (ctx.lastSender !== "human") {
-			ctx.markdown.push("# Human");
+			// Emit runtime for the previous agent turn before starting a new human turn
+			renderTurnRuntime(ctx);
+			const timestampStr = line.timestamp ? ` — ${formatTimestamp(line.timestamp)}` : "";
+			ctx.markdown.push(`# Human${timestampStr}`);
 			ctx.lastSender = "human";
+		}
+		if (line.timestamp) {
+			ctx.lastUserTimestamp = line.timestamp;
 		}
 		ctx.markdown.push(cleanContent);
 	}
@@ -190,6 +203,11 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 		}
 	}
 
+	// Track the last assistant timestamp for runtime calculation
+	if (line.timestamp) {
+		ctx.lastAssistantTimestamp = line.timestamp;
+	}
+
 	if (parts.length > 0) {
 		// Show header if sender changed or model changed
 		if (ctx.lastSender !== "assistant" || (model && model !== ctx.lastModel)) {
@@ -200,6 +218,15 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 		}
 		ctx.markdown.push(...parts);
 	}
+}
+
+function renderTurnRuntime(ctx: RenderContext): void {
+	const runtimeStr = formatRuntime(ctx.lastUserTimestamp, ctx.lastAssistantTimestamp);
+	if (runtimeStr) {
+		ctx.markdown.push(`*Agent runtime${runtimeStr}*`);
+	}
+	// Reset so we don't double-emit
+	ctx.lastAssistantTimestamp = null;
 }
 
 function renderSummaryLine(ctx: RenderContext, line: SummaryLine): void {
@@ -280,9 +307,45 @@ function formatNumber(n: number): string {
 	return n.toLocaleString();
 }
 
+function formatTimestamp(timestamp: string): string {
+	const date = new Date(timestamp);
+	if (Number.isNaN(date.getTime())) return "";
+	// Format as "Mar 23, 2026 07:09"
+	return date.toLocaleString("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+	});
+}
+
+function formatRuntime(
+	userTimestamp: string | null,
+	assistantTimestamp: string | null | undefined,
+): string {
+	if (!userTimestamp || !assistantTimestamp) return "";
+	const start = new Date(userTimestamp).getTime();
+	const end = new Date(assistantTimestamp).getTime();
+	if (Number.isNaN(start) || Number.isNaN(end)) return "";
+	const durationMs = end - start;
+	if (durationMs < 0) return "";
+	if (durationMs < 1000) return "";
+	const seconds = Math.floor(durationMs / 1000);
+	if (seconds < 60) return ` — ${seconds}s`;
+	const minutes = Math.floor(seconds / 60);
+	const remainingSeconds = seconds % 60;
+	if (minutes < 60) return ` — ${minutes}m ${remainingSeconds}s`;
+	const hours = Math.floor(minutes / 60);
+	const remainingMinutes = minutes % 60;
+	return ` — ${hours}h ${remainingMinutes}m`;
+}
+
 function formatModelName(model: string): string {
 	// Convert model ID to friendly name
 	// e.g., "claude-sonnet-4-5-20250929" -> "Sonnet 4.5"
+	if (model === "<synthetic>") return "Synthetic";
 	if (model.includes("opus")) {
 		const match = model.match(/opus-?(\d+)?-?(\d+)?/);
 		if (match?.[1] && match?.[2]) {
