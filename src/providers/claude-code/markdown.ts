@@ -510,7 +510,10 @@ function renderToolUseContent(
 			for (const q of typedInput.questions ?? []) {
 				parts.push(`**${q.question}**`);
 				if (q.options?.length) {
-					parts.push(q.options.map((opt, i) => `${i + 1}. ${opt}`).join("\n"));
+					parts.push(q.options.map((opt: string | { label: string; description?: string }, i: number) => {
+						if (typeof opt === "string") return `${i + 1}. ${opt}`;
+						return `${i + 1}. **${opt.label}**${opt.description ? ` — ${opt.description}` : ""}`;
+					}).join("\n"));
 				}
 			}
 			break;
