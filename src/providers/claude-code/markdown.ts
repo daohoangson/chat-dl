@@ -2,9 +2,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { homedir, userInfo } from "node:os";
 import type {
+	AttachmentLine,
 	AssistantLine,
 	JsonlLine,
+	PermissionModeLine,
 	SummaryLine,
+	SystemLine,
 	TextContent,
 	ThinkingContent,
 	ToolResultContent,
@@ -12,7 +15,14 @@ import type {
 	Usage,
 	UserLine,
 } from "./models";
-import { isAssistantLine, isSummaryLine, isUserLine } from "./models";
+import {
+	isAssistantLine,
+	isAttachmentLine,
+	isPermissionModeLine,
+	isSummaryLine,
+	isSystemLine,
+	isUserLine,
+} from "./models";
 
 type Sender = "human" | "assistant" | null;
 
@@ -81,14 +91,21 @@ export function renderFromLines(lines: JsonlLine[], options?: RenderOptions): st
 
 	// Second pass: render messages
 	for (const line of lines) {
-		if (isUserLine(line)) {
+		if (isPermissionModeLine(line)) {
+			renderPermissionModeLine(ctx, line);
+		} else if (isSystemLine(line)) {
+			renderSystemLine(ctx, line);
+		} else if (isAttachmentLine(line)) {
+			renderAttachmentLine(ctx, line);
+		} else if (isUserLine(line)) {
 			renderUserLine(ctx, line);
 		} else if (isAssistantLine(line)) {
 			renderAssistantLine(ctx, line);
 		} else if (isSummaryLine(line)) {
 			renderSummaryLine(ctx, line);
 		}
-		// Other types (queue-operation, system, file-history-snapshot, progress) are skipped
+		// Other metadata/event types are skipped (queue-operation,
+		// file-history-snapshot, progress, last-prompt)
 	}
 
 	// Emit runtime for the last agent turn
@@ -235,6 +252,262 @@ function renderSummaryLine(ctx: RenderContext, line: SummaryLine): void {
 		ctx.markdown.push(`> **Summary:** ${line.summary}`);
 		ctx.lastSender = null; // Reset sender after summary
 	}
+}
+
+function renderPermissionModeLine(ctx: RenderContext, line: PermissionModeLine): void {
+	if (!line.permissionMode?.trim()) {
+		return;
+	}
+
+	pushEventBlock(ctx, `> **Permission mode:** \`${line.permissionMode}\``);
+}
+
+function renderSystemLine(ctx: RenderContext, line: SystemLine): void {
+	switch (line.subtype) {
+		case "bridge_status": {
+			const content = line.content?.trim();
+			const url = line.url && content?.includes(line.url) ? undefined : line.url;
+			const parts = [content, url].filter(
+				(part, index, array): part is string =>
+					Boolean(part) && array.indexOf(part) === index,
+			);
+			if (parts.length > 0) {
+				pushEventBlock(ctx, `> **Remote control:** ${parts.join(" ")}`);
+			}
+			return;
+		}
+		case "away_summary": {
+			const content = line.content?.replace(/\s*\(disable recaps in \/config\)\s*$/, "").trim();
+			if (content) {
+				pushEventBlock(ctx, `> **Away summary:** ${content}`);
+			}
+			return;
+		}
+		case "informational": {
+			if (line.content?.trim()) {
+				pushEventBlock(ctx, `> **Info:** ${line.content.trim()}`);
+			}
+			return;
+		}
+		case "stop_hook_summary": {
+			const hookErrorCount = line.hookErrors?.length ?? 0;
+			const notes: string[] = [];
+			if (line.hookCount && line.hookCount > 0) {
+				notes.push(`${line.hookCount} hook${line.hookCount === 1 ? "" : "s"} ran`);
+			}
+			if (hookErrorCount > 0) {
+				notes.push(`${hookErrorCount} error${hookErrorCount === 1 ? "" : "s"}`);
+			}
+			if (line.preventedContinuation) {
+				notes.push("continuation prevented");
+			}
+			if (line.hasOutput) {
+				notes.push("hook output available");
+			}
+			if (hookErrorCount > 0 || line.preventedContinuation || line.hasOutput) {
+				pushEventBlock(ctx, `> **Stop hooks:** ${notes.join(", ")}`);
+			}
+			return;
+		}
+		case "turn_duration":
+			return;
+		default: {
+			if (line.content?.trim()) {
+				const label = line.subtype ? `System (${line.subtype})` : "System";
+				pushEventBlock(ctx, `> **${label}:** ${line.content.trim()}`);
+			}
+		}
+	}
+}
+
+function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
+	const attachment = line.attachment;
+	if (!attachment) {
+		return;
+	}
+
+	switch (attachment.type) {
+		case "deferred_tools_delta": {
+			const summary = formatDeltaSummary("tools", attachment.addedNames, attachment.removedNames);
+			if (summary) {
+				pushEventBlock(ctx, `> **Tool availability updated:** ${summary}`);
+			}
+			return;
+		}
+		case "mcp_instructions_delta": {
+			const summary = formatDeltaSummary(
+				"instructions",
+				attachment.addedNames,
+				attachment.removedNames,
+			);
+			if (summary) {
+				pushEventBlock(ctx, `> **MCP instructions updated:** ${summary}`);
+			}
+			return;
+		}
+		case "skill_listing": {
+			const count = attachment.skillCount;
+			if (typeof count === "number" && count > 0) {
+				const prefix = attachment.isInitial ? "Initial skills loaded" : "Skills updated";
+				pushEventBlock(ctx, `> **${prefix}:** ${count} available`);
+			}
+			return;
+		}
+		case "task_reminder": {
+			const itemCount = attachment.itemCount ?? 0;
+			const hasContent =
+				typeof attachment.content === "string"
+					? attachment.content.trim().length > 0
+					: Array.isArray(attachment.content) && attachment.content.length > 0;
+			if (itemCount > 0 || hasContent) {
+				pushEventBlock(ctx, `> **Task reminder:** ${itemCount || "pending"} item(s)`);
+			}
+			return;
+		}
+		case "async_hook_response": {
+			if (!isMeaningfulHookResponse(attachment.stdout, attachment.stderr, attachment.exitCode)) {
+				return;
+			}
+			const hookLabel = [attachment.hookName, attachment.hookEvent].filter(Boolean).join(" / ");
+			const summary = [`exit ${attachment.exitCode ?? 0}`];
+			if (attachment.stderr?.trim()) {
+				summary.push("stderr");
+			}
+			if (attachment.stdout?.trim()) {
+				summary.push("stdout");
+			}
+			const blocks = [`> **Hook response${hookLabel ? ` (${hookLabel})` : ""}:** ${summary.join(", ")}`];
+			const output = formatAttachmentOutputBlock(attachment.stdout, attachment.stderr);
+			if (output) {
+				blocks.push(output);
+			}
+			pushEventBlock(ctx, ...blocks);
+			return;
+		}
+		case "edited_text_file": {
+			if (!attachment.filename || shouldSkipEditedTextFile(attachment.filename)) {
+				return;
+			}
+			const blocks = [`> **Edited text file:** \`${maskPath(ctx, attachment.filename)}\``];
+			if (attachment.snippet?.trim()) {
+				blocks.push(
+					[
+						"<details><summary>Snippet</summary>",
+						"",
+						"```text",
+						attachment.snippet.trim().slice(0, 1200),
+						"```",
+						"",
+						"</details>",
+					].join("\n"),
+				);
+			}
+			pushEventBlock(ctx, ...blocks);
+			return;
+		}
+		case "date_change": {
+			if (attachment.newDate?.trim()) {
+				pushEventBlock(ctx, `> **Date changed:** ${attachment.newDate}`);
+			}
+			return;
+		}
+		default: {
+			if (typeof attachment.content === "string" && attachment.content.trim()) {
+				pushEventBlock(ctx, `> **Attachment (${attachment.type}):** ${attachment.content.trim()}`);
+			}
+		}
+	}
+}
+
+function pushEventBlock(ctx: RenderContext, ...blocks: string[]): void {
+	if (blocks.length === 0) {
+		return;
+	}
+
+	if (ctx.lastSender === "assistant" && ctx.lastAssistantTimestamp) {
+		renderTurnRuntime(ctx);
+	}
+
+	ctx.markdown.push(...blocks);
+	ctx.lastSender = null;
+}
+
+function formatDeltaSummary(
+	label: string,
+	addedNames?: string[],
+	removedNames?: string[],
+): string {
+	const parts: string[] = [];
+	const addedCount = addedNames?.length ?? 0;
+	const removedCount = removedNames?.length ?? 0;
+
+	if (addedCount > 0) {
+		parts.push(`+${addedCount} ${label}${formatNamePreview(addedNames ?? [])}`);
+	}
+	if (removedCount > 0) {
+		parts.push(`-${removedCount} ${label}${formatNamePreview(removedNames ?? [])}`);
+	}
+
+	return parts.join("; ");
+}
+
+function formatNamePreview(names: string[], max = 5): string {
+	if (names.length === 0) {
+		return "";
+	}
+
+	const preview = names.slice(0, max).map((name) => `\`${name}\``).join(", ");
+	if (names.length <= max) {
+		return ` (${preview})`;
+	}
+
+	return ` (${preview}, ... +${names.length - max} more)`;
+}
+
+function isMeaningfulHookResponse(
+	stdout?: string,
+	stderr?: string,
+	exitCode?: number,
+): boolean {
+	if ((exitCode ?? 0) !== 0) {
+		return true;
+	}
+	if (stderr?.trim()) {
+		return true;
+	}
+	if (!stdout?.trim()) {
+		return false;
+	}
+
+	return !/^Output truncated \(0KB total\)\./.test(stdout.trim());
+}
+
+function formatAttachmentOutputBlock(stdout?: string, stderr?: string): string | null {
+	const sections: string[] = [];
+
+	if (stdout?.trim()) {
+		sections.push("**stdout**");
+		sections.push("```text");
+		sections.push(stdout.trim().slice(0, 2000));
+		sections.push("```");
+	}
+
+	if (stderr?.trim()) {
+		sections.push("**stderr**");
+		sections.push("```text");
+		sections.push(stderr.trim().slice(0, 2000));
+		sections.push("```");
+	}
+
+	if (sections.length === 0) {
+		return null;
+	}
+
+	return sections.join("\n");
+}
+
+function shouldSkipEditedTextFile(filename: string): boolean {
+	return filename.startsWith("/tmp/") || filename.startsWith("/private/tmp/");
 }
 
 function accumulateUsage(ctx: RenderContext, usage: Usage): void {

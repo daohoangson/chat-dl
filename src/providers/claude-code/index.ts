@@ -2,7 +2,27 @@ import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { parseSchemaOrThrow } from "@/common";
 import { renderFromLines, type RenderOptions } from "./markdown";
-import { jsonlLineSchema, type JsonlLine } from "./models";
+import {
+	genericJsonlLineSchema,
+	renderedJsonlLineSchema,
+	type JsonlLine,
+} from "./models";
+
+function parseJsonlLine(json: unknown): JsonlLine {
+	const baseLine = parseSchemaOrThrow(genericJsonlLineSchema, json);
+
+	switch (baseLine.type) {
+		case "user":
+		case "assistant":
+		case "permission-mode":
+		case "system":
+		case "attachment":
+		case "summary":
+			return parseSchemaOrThrow(renderedJsonlLineSchema, json);
+		default:
+			return baseLine;
+	}
+}
 
 export function parseJsonlFromPath(filePath: string): JsonlLine[] {
 	const content = readFileSync(filePath, "utf-8");
@@ -15,7 +35,7 @@ export function parseJsonlFromPath(filePath: string): JsonlLine[] {
 
 		try {
 			const json: unknown = JSON.parse(line);
-			const validated = parseSchemaOrThrow(jsonlLineSchema, json);
+			const validated = parseJsonlLine(json);
 			parsed.push(validated);
 		} catch (error) {
 			console.error(`Error parsing line ${i + 1}:`, error);
