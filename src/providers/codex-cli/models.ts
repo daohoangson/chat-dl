@@ -10,11 +10,21 @@ const outputTextContentSchema = v.object({
 	text: v.string(),
 });
 
+const inputImageContentSchema = v.object({
+	type: v.literal("input_image"),
+	image_url: v.string(),
+});
+
 const messageContentSchema = v.array(
-	v.variant("type", [inputTextContentSchema, outputTextContentSchema]),
+	v.variant("type", [
+		inputTextContentSchema,
+		outputTextContentSchema,
+		inputImageContentSchema,
+	]),
 );
 
 export type MessageContent = v.InferOutput<typeof messageContentSchema>[number];
+export type RichContent = v.InferOutput<typeof messageContentSchema>;
 
 const messagePayloadSchema = v.looseObject({
 	type: v.literal("message"),
@@ -50,7 +60,7 @@ export type FunctionCallPayload = v.InferOutput<typeof functionCallPayloadSchema
 const functionCallOutputPayloadSchema = v.looseObject({
 	type: v.literal("function_call_output"),
 	call_id: v.string(),
-	output: v.string(),
+	output: v.union([v.string(), messageContentSchema]),
 });
 
 export type FunctionCallOutputPayload = v.InferOutput<typeof functionCallOutputPayloadSchema>;
@@ -68,12 +78,15 @@ export type CustomToolCallPayload = v.InferOutput<typeof customToolCallPayloadSc
 const customToolCallOutputPayloadSchema = v.looseObject({
 	type: v.literal("custom_tool_call_output"),
 	call_id: v.string(),
-	output: v.string(),
+	output: v.union([v.string(), messageContentSchema]),
 });
 
 export type CustomToolCallOutputPayload = v.InferOutput<
 	typeof customToolCallOutputPayloadSchema
 >;
+export type ToolOutput = v.InferOutput<
+	typeof functionCallOutputPayloadSchema
+>["output"];
 
 const webSearchCallPayloadSchema = v.looseObject({
 	type: v.literal("web_search_call"),

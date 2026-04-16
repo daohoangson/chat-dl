@@ -1,8 +1,10 @@
 import type {
 	CodexCliLine,
+	MessageContent,
 	MessagePayload,
 	ReasoningPayload,
 	TokenUsage,
+	ToolOutput,
 	WebSearchCallPayload,
 } from "./models";
 import {
@@ -25,7 +27,7 @@ interface RenderContext {
 	lastSender: Sender;
 	lastModel: string | null;
 	currentModel: string | null;
-	toolOutputs: Map<string, string>;
+	toolOutputs: Map<string, ToolOutput>;
 	renderedOutputs: Set<string>;
 	usage: UsageStats;
 	usageFromTotals: UsageStats | null;
@@ -186,7 +188,7 @@ function renderToolCall(
 function renderToolOutputIfNeeded(
 	ctx: RenderContext,
 	callId: string,
-	output: string,
+	output: ToolOutput,
 ): void {
 	if (ctx.renderedOutputs.has(callId)) return;
 	ensureAssistantHeader(ctx);
@@ -195,11 +197,21 @@ function renderToolOutputIfNeeded(
 	ctx.renderedOutputs.add(callId);
 }
 
-function renderToolOutput(ctx: RenderContext, output: string): void {
-	const formattedOutput = formatOutput(output);
-	if (!formattedOutput) return;
+function renderToolOutput(ctx: RenderContext, output: ToolOutput): void {
+	if (typeof output === "string") {
+		const formattedOutput = formatOutput(output);
+		if (!formattedOutput) return;
+		ctx.markdown.push("### Output");
+		ctx.markdown.push(
+			formatCodeBlock(formattedOutput.text, formattedOutput.language),
+		);
+		return;
+	}
+
+	const renderedOutput = output.map(formatMessageContentItem).filter(Boolean).join("\n\n");
+	if (!renderedOutput.trim()) return;
 	ctx.markdown.push("### Output");
-	ctx.markdown.push(formatCodeBlock(formattedOutput.text, formattedOutput.language));
+	ctx.markdown.push(renderedOutput);
 }
 
 function renderWebSearchCall(
@@ -402,11 +414,32 @@ function extractMessageText(payload: MessagePayload): string {
 	}
 	if (!Array.isArray(content)) return "";
 
-	const parts = content
-		.map((item) => ("text" in item ? String(item.text) : ""))
-		.filter(Boolean);
+	const parts = content.map(formatMessageContentItem).filter(Boolean);
 
 	return parts.join("\n\n");
+}
+
+function formatMessageContentItem(item: MessageContent): string {
+	if ("text" in item) {
+		return String(item.text);
+	}
+
+	return formatInputImagePlaceholder(item.image_url);
+}
+
+function formatInputImagePlaceholder(imageUrl: string): string {
+	const mediaType = getDataUrlMediaType(imageUrl);
+	return mediaType ? `[Attached image (${mediaType})]` : "[Attached image]";
+}
+
+function getDataUrlMediaType(value: string): string | null {
+	const match = /^data:([^;,]+)[;,]/.exec(value);
+	if (!match) return null;
+
+	const mediaType = match[1];
+	if (!mediaType) return null;
+	const subtype = mediaType.split("/")[1];
+	return subtype ?? mediaType;
 }
 
 function cleanUserContent(content: string): string {
