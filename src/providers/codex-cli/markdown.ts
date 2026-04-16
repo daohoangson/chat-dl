@@ -294,22 +294,20 @@ function renderUsageSummary(ctx: RenderContext): void {
 
 	const pricing = getPricing(ctx.lastModel ?? ctx.currentModel);
 	if (pricing) {
-		const billableOutputTokens = usage.outputTokens + usage.reasoningTokens;
+		const uncachedInputTokens = Math.max(
+			usage.inputTokens - usage.cachedInputTokens,
+			0,
+		);
 		const cachedInputRate = pricing.cacheRead;
 		const cost =
-			(usage.inputTokens * pricing.input +
+			(uncachedInputTokens * pricing.input +
 				usage.cachedInputTokens * cachedInputRate +
-				billableOutputTokens * pricing.output) /
+				usage.outputTokens * pricing.output) /
 			1_000_000;
 
 		lines.push(`- **Estimated cost:** $${cost.toFixed(2)} (${pricing.modelLabel})`);
 		if (pricing.note) {
 			lines.push(`- **Pricing note:** ${pricing.note}`);
-		}
-		if (usage.reasoningTokens > 0) {
-			lines.push(
-				`- **Billed output tokens:** ${formatNumber(billableOutputTokens)}`,
-			);
 		}
 	}
 
@@ -317,7 +315,7 @@ function renderUsageSummary(ctx: RenderContext): void {
 
 	if (usage.reasoningTokens > 0) {
 		ctx.markdown.push(
-			"*Reasoning tokens are billed as output tokens in OpenAI pricing.*",
+			"*Reasoning tokens are included in output tokens and billed at the output rate.*",
 		);
 	}
 }
