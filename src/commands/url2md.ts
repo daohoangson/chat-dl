@@ -1,5 +1,9 @@
 import { writeFileSync } from "node:fs";
-import { renderMarkdownFromUrl } from "@/providers";
+import {
+	isLocalPath,
+	renderMarkdownFromPath,
+	renderMarkdownFromUrl,
+} from "@/providers";
 import type { CommandModule } from "yargs";
 
 interface Url2mdArgs {
@@ -8,19 +12,26 @@ interface Url2mdArgs {
 }
 
 async function handler(args: Url2mdArgs) {
-	const markdown = await renderMarkdownFromUrl(args.url);
-	const outputPath = args.output === "-" ? process.stdout.fd : args.output;
-	writeFileSync(outputPath, markdown);
+	const markdown = isLocalPath(args.url)
+		? renderMarkdownFromPath(args.url)
+		: await renderMarkdownFromUrl(args.url);
+
+	if (args.output === "-") {
+		process.stdout.write(markdown);
+	} else {
+		writeFileSync(args.output, markdown);
+	}
 }
 
 export const url2md: CommandModule<unknown, Url2mdArgs> = {
 	command: "url2md <url>",
 	aliases: ["$0"],
-	describe: "Render markdown from chat URL",
+	describe: "Render markdown from chat URL or local file",
 	builder: (yargs) => {
 		return yargs
 			.positional("url", {
 				type: "string",
+				description: "URL or local file path (e.g., .jsonl for Claude Code)",
 				demandOption: true,
 			})
 			.option("output", {

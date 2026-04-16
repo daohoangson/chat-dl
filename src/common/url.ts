@@ -1,4 +1,4 @@
-type Provider = "grok" | "chatgpt" | "claude";
+export type Provider = "grok" | "chatgpt" | "claude" | "claude-code";
 
 export function getProviderByUrl(url: string): Provider | undefined {
 	const hostname = new URL(url).hostname;
@@ -21,4 +21,27 @@ export function getProviderByUrl(url: string): Provider | undefined {
 	}
 
 	return;
+}
+
+export function getProviderByPath(path: string): Provider | undefined {
+	if (path.endsWith(".jsonl")) {
+		return "claude-code";
+	}
+	return;
+}
+
+export function isLocalPath(input: string): boolean {
+	// Check if input is a local file path (not a URL)
+	if (input.startsWith("/") || input.startsWith("./") || input.startsWith("../")) {
+		return true;
+	}
+	// Windows paths
+	if (/^[a-zA-Z]:[\\/]/.test(input)) {
+		return true;
+	}
+	// Relative paths without ./ prefix
+	if (!input.includes("://") && !input.startsWith("http")) {
+		return true;
+	}
+	return false;
 }
