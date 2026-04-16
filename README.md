@@ -91,3 +91,15 @@ If you can't run Chrome in debug mode, you can:
 npm install
 npm start -- <url>
 ```
+
+### Parser verification
+
+To smoke-test the Claude Code parser and renderer against recent local transcripts:
+
+```bash
+npm run verify:claude-jsonl
+```
+
+The script checks the latest 100 `.jsonl` files under `~/.claude/projects` by default.
+You can override the source and count with `CLAUDE_PROJECTS_DIR` and
+`CLAUDE_JSONL_LIMIT`.
