@@ -1,4 +1,4 @@
-export type Provider = "grok" | "chatgpt" | "claude" | "claude-code";
+export type Provider = "grok" | "chatgpt" | "claude" | "claude-code" | "codex-cli";
 
 export function getProviderByUrl(url: string): Provider | undefined {
 	const hostname = new URL(url).hostname;
@@ -24,6 +24,12 @@ export function getProviderByUrl(url: string): Provider | undefined {
 }
 
 export function getProviderByPath(path: string): Provider | undefined {
+	if (
+		path.endsWith(".jsonl") &&
+		(path.includes("/.codex/sessions/") || path.includes("\\.codex\\sessions\\"))
+	) {
+		return "codex-cli";
+	}
 	if (path.endsWith(".jsonl")) {
 		return "claude-code";
 	}
