@@ -10,6 +10,7 @@ import * as v from "valibot";
 import * as chatgpt from "./chatgpt";
 import * as claude from "./claude";
 import * as claudeCode from "./claude-code";
+import * as geminiCli from "./gemini-cli";
 import * as grok from "./grok";
 
 export async function downloadJsonFromUrl(url: string) {
@@ -39,6 +40,10 @@ export function parseJsonFromPath(path: string) {
 			const lines = claudeCode.parseJsonlFromPath(path);
 			return { provider, json: lines };
 		}
+		case "gemini-cli": {
+			const session = geminiCli.parseJsonFromPath(path);
+			return { provider, json: session };
+		}
 		default:
 			throw new Error(`Unsupported file type: ${path}`);
 	}
@@ -47,7 +52,13 @@ export function parseJsonFromPath(path: string) {
 export function renderMarkdownFromJson(input: unknown) {
 	const parsed: { provider: Provider; json: unknown } = parseSchemaOrThrow(
 		v.object({
-			provider: v.picklist(["chatgpt", "claude", "claude-code", "grok"]),
+			provider: v.picklist([
+				"chatgpt",
+				"claude",
+				"claude-code",
+				"gemini-cli",
+				"grok",
+			]),
 			json: v.unknown(),
 		}),
 		input,
@@ -61,6 +72,8 @@ export function renderMarkdownFromJson(input: unknown) {
 			return claude.renderMarkdownFromJson(json);
 		case "claude-code":
 			return claudeCode.renderMarkdownFromJson(json);
+		case "gemini-cli":
+			return geminiCli.renderMarkdownFromJson(json);
 		case "grok":
 			return grok.renderMarkdownFromJson(json);
 	}
@@ -85,6 +98,8 @@ export function renderMarkdownFromPath(path: string) {
 	switch (provider) {
 		case "claude-code":
 			return claudeCode.renderMarkdownFromPath(path);
+		case "gemini-cli":
+			return geminiCli.renderMarkdownFromPath(path);
 		default:
 			throw new Error(`Unsupported file type: ${path}`);
 	}
