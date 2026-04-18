@@ -50,9 +50,14 @@ interface RenderContext {
 
 export interface RenderOptions {
 	subagentsDir?: string;
+	/** Only render the last N JSONL lines (tool results are still collected from all lines) */
+	tailLines?: number;
 }
 
-export function renderFromLines(lines: JsonlLine[], options?: RenderOptions): string {
+export function renderFromLines(
+	lines: JsonlLine[],
+	options?: RenderOptions,
+): string {
 	// Extract cwd from first user or assistant line that has it
 	let cwd: string | null = null;
 	for (const line of lines) {
@@ -89,8 +94,11 @@ export function renderFromLines(lines: JsonlLine[], options?: RenderOptions): st
 		}
 	}
 
-	// Second pass: render messages
-	for (const line of lines) {
+	// Second pass: render messages (optionally only the tail)
+	const renderLines = options?.tailLines
+		? lines.slice(Math.max(0, lines.length - options.tailLines))
+		: lines;
+	for (const line of renderLines) {
 		if (isPermissionModeLine(line)) {
 			renderPermissionModeLine(ctx, line);
 		} else if (isSystemLine(line)) {
@@ -170,7 +178,9 @@ function renderUserLine(ctx: RenderContext, line: UserLine): void {
 		if (ctx.lastSender !== "human") {
 			// Emit runtime for the previous agent turn before starting a new human turn
 			renderTurnRuntime(ctx);
-			const timestampStr = line.timestamp ? ` — ${formatTimestamp(line.timestamp)}` : "";
+			const timestampStr = line.timestamp
+				? ` — ${formatTimestamp(line.timestamp)}`
+				: "";
 			ctx.markdown.push(`# Human${timestampStr}`);
 			ctx.lastSender = "human";
 		}
@@ -186,13 +196,22 @@ function cleanUserContent(content: string): string {
 	let cleaned = content;
 
 	// Remove <system_instruction>...</system_instruction>
-	cleaned = cleaned.replace(/<system_instruction>[\s\S]*?<\/system_instruction>/g, "");
+	cleaned = cleaned.replace(
+		/<system_instruction>[\s\S]*?<\/system_instruction>/g,
+		"",
+	);
 
 	// Remove <system-instruction>...</system-instruction>
-	cleaned = cleaned.replace(/<system-instruction>[\s\S]*?<\/system-instruction>/g, "");
+	cleaned = cleaned.replace(
+		/<system-instruction>[\s\S]*?<\/system-instruction>/g,
+		"",
+	);
 
 	// Remove <system-reminder>...</system-reminder>
-	cleaned = cleaned.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "");
+	cleaned = cleaned.replace(
+		/<system-reminder>[\s\S]*?<\/system-reminder>/g,
+		"",
+	);
 
 	return cleaned.trim();
 }
@@ -238,7 +257,10 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 }
 
 function renderTurnRuntime(ctx: RenderContext): void {
-	const runtimeStr = formatRuntime(ctx.lastUserTimestamp, ctx.lastAssistantTimestamp);
+	const runtimeStr = formatRuntime(
+		ctx.lastUserTimestamp,
+		ctx.lastAssistantTimestamp,
+	);
 	if (runtimeStr) {
 		ctx.markdown.push(`*Agent runtime${runtimeStr}*`);
 	}
@@ -254,7 +276,10 @@ function renderSummaryLine(ctx: RenderContext, line: SummaryLine): void {
 	}
 }
 
-function renderPermissionModeLine(ctx: RenderContext, line: PermissionModeLine): void {
+function renderPermissionModeLine(
+	ctx: RenderContext,
+	line: PermissionModeLine,
+): void {
 	if (!line.permissionMode?.trim()) {
 		return;
 	}
@@ -266,7 +291,8 @@ function renderSystemLine(ctx: RenderContext, line: SystemLine): void {
 	switch (line.subtype) {
 		case "bridge_status": {
 			const content = line.content?.trim();
-			const url = line.url && content?.includes(line.url) ? undefined : line.url;
+			const url =
+				line.url && content?.includes(line.url) ? undefined : line.url;
 			const parts = [content, url].filter(
 				(part, index, array): part is string =>
 					Boolean(part) && array.indexOf(part) === index,
@@ -277,7 +303,9 @@ function renderSystemLine(ctx: RenderContext, line: SystemLine): void {
 			return;
 		}
 		case "away_summary": {
-			const content = line.content?.replace(/\s*\(disable recaps in \/config\)\s*$/, "").trim();
+			const content = line.content
+				?.replace(/\s*\(disable recaps in \/config\)\s*$/, "")
+				.trim();
 			if (content) {
 				pushEventBlock(ctx, `> **Away summary:** ${content}`);
 			}
@@ -293,7 +321,9 @@ function renderSystemLine(ctx: RenderContext, line: SystemLine): void {
 			const hookErrorCount = line.hookErrors?.length ?? 0;
 			const notes: string[] = [];
 			if (line.hookCount && line.hookCount > 0) {
-				notes.push(`${line.hookCount} hook${line.hookCount === 1 ? "" : "s"} ran`);
+				notes.push(
+					`${line.hookCount} hook${line.hookCount === 1 ? "" : "s"} ran`,
+				);
 			}
 			if (hookErrorCount > 0) {
 				notes.push(`${hookErrorCount} error${hookErrorCount === 1 ? "" : "s"}`);
@@ -328,7 +358,11 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 
 	switch (attachment.type) {
 		case "deferred_tools_delta": {
-			const summary = formatDeltaSummary("tools", attachment.addedNames, attachment.removedNames);
+			const summary = formatDeltaSummary(
+				"tools",
+				attachment.addedNames,
+				attachment.removedNames,
+			);
 			if (summary) {
 				pushEventBlock(ctx, `> **Tool availability updated:** ${summary}`);
 			}
@@ -348,7 +382,9 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 		case "skill_listing": {
 			const count = attachment.skillCount;
 			if (typeof count === "number" && count > 0) {
-				const prefix = attachment.isInitial ? "Initial skills loaded" : "Skills updated";
+				const prefix = attachment.isInitial
+					? "Initial skills loaded"
+					: "Skills updated";
 				pushEventBlock(ctx, `> **${prefix}:** ${count} available`);
 			}
 			return;
@@ -360,15 +396,26 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 					? attachment.content.trim().length > 0
 					: Array.isArray(attachment.content) && attachment.content.length > 0;
 			if (itemCount > 0 || hasContent) {
-				pushEventBlock(ctx, `> **Task reminder:** ${itemCount || "pending"} item(s)`);
+				pushEventBlock(
+					ctx,
+					`> **Task reminder:** ${itemCount || "pending"} item(s)`,
+				);
 			}
 			return;
 		}
 		case "async_hook_response": {
-			if (!isMeaningfulHookResponse(attachment.stdout, attachment.stderr, attachment.exitCode)) {
+			if (
+				!isMeaningfulHookResponse(
+					attachment.stdout,
+					attachment.stderr,
+					attachment.exitCode,
+				)
+			) {
 				return;
 			}
-			const hookLabel = [attachment.hookName, attachment.hookEvent].filter(Boolean).join(" / ");
+			const hookLabel = [attachment.hookName, attachment.hookEvent]
+				.filter(Boolean)
+				.join(" / ");
 			const summary = [`exit ${attachment.exitCode ?? 0}`];
 			if (attachment.stderr?.trim()) {
 				summary.push("stderr");
@@ -376,8 +423,13 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 			if (attachment.stdout?.trim()) {
 				summary.push("stdout");
 			}
-			const blocks = [`> **Hook response${hookLabel ? ` (${hookLabel})` : ""}:** ${summary.join(", ")}`];
-			const output = formatAttachmentOutputBlock(attachment.stdout, attachment.stderr);
+			const blocks = [
+				`> **Hook response${hookLabel ? ` (${hookLabel})` : ""}:** ${summary.join(", ")}`,
+			];
+			const output = formatAttachmentOutputBlock(
+				attachment.stdout,
+				attachment.stderr,
+			);
 			if (output) {
 				blocks.push(output);
 			}
@@ -385,10 +437,15 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 			return;
 		}
 		case "edited_text_file": {
-			if (!attachment.filename || shouldSkipEditedTextFile(attachment.filename)) {
+			if (
+				!attachment.filename ||
+				shouldSkipEditedTextFile(attachment.filename)
+			) {
 				return;
 			}
-			const blocks = [`> **Edited text file:** \`${maskPath(ctx, attachment.filename)}\``];
+			const blocks = [
+				`> **Edited text file:** \`${maskPath(ctx, attachment.filename)}\``,
+			];
 			if (attachment.snippet?.trim()) {
 				blocks.push(
 					[
@@ -413,7 +470,10 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 		}
 		default: {
 			if (typeof attachment.content === "string" && attachment.content.trim()) {
-				pushEventBlock(ctx, `> **Attachment (${attachment.type}):** ${attachment.content.trim()}`);
+				pushEventBlock(
+					ctx,
+					`> **Attachment (${attachment.type}):** ${attachment.content.trim()}`,
+				);
 			}
 		}
 	}
@@ -445,7 +505,9 @@ function formatDeltaSummary(
 		parts.push(`+${addedCount} ${label}${formatNamePreview(addedNames ?? [])}`);
 	}
 	if (removedCount > 0) {
-		parts.push(`-${removedCount} ${label}${formatNamePreview(removedNames ?? [])}`);
+		parts.push(
+			`-${removedCount} ${label}${formatNamePreview(removedNames ?? [])}`,
+		);
 	}
 
 	return parts.join("; ");
@@ -456,7 +518,10 @@ function formatNamePreview(names: string[], max = 5): string {
 		return "";
 	}
 
-	const preview = names.slice(0, max).map((name) => `\`${name}\``).join(", ");
+	const preview = names
+		.slice(0, max)
+		.map((name) => `\`${name}\``)
+		.join(", ");
 	if (names.length <= max) {
 		return ` (${preview})`;
 	}
@@ -482,7 +547,10 @@ function isMeaningfulHookResponse(
 	return !/^Output truncated \(0KB total\)\./.test(stdout.trim());
 }
 
-function formatAttachmentOutputBlock(stdout?: string, stderr?: string): string | null {
+function formatAttachmentOutputBlock(
+	stdout?: string,
+	stderr?: string,
+): string | null {
 	const sections: string[] = [];
 
 	if (stdout?.trim()) {
@@ -531,7 +599,8 @@ const PRICING = {
 
 function renderUsageSummary(ctx: RenderContext): void {
 	const { usage, lastModel } = ctx;
-	const totalInput = usage.inputTokens + usage.cacheCreationTokens + usage.cacheReadTokens;
+	const totalInput =
+		usage.inputTokens + usage.cacheCreationTokens + usage.cacheReadTokens;
 
 	if (totalInput === 0 && usage.outputTokens === 0) {
 		return; // No usage data
@@ -546,7 +615,9 @@ function renderUsageSummary(ctx: RenderContext): void {
 	];
 
 	if (usage.cacheCreationTokens > 0 || usage.cacheReadTokens > 0) {
-		lines.push(`- **Cache creation:** ${formatNumber(usage.cacheCreationTokens)}`);
+		lines.push(
+			`- **Cache creation:** ${formatNumber(usage.cacheCreationTokens)}`,
+		);
 		lines.push(`- **Cache read:** ${formatNumber(usage.cacheReadTokens)}`);
 	}
 
@@ -649,7 +720,10 @@ function renderTextContent(parts: string[], content: TextContent): void {
 	}
 }
 
-function renderThinkingContent(parts: string[], content: ThinkingContent): void {
+function renderThinkingContent(
+	parts: string[],
+	content: ThinkingContent,
+): void {
 	if (content.thinking.trim()) {
 		parts.push("<details><summary>Thinking</summary>");
 		parts.push(content.thinking.trim());
@@ -678,7 +752,9 @@ function renderToolUseContent(
 			// Truncate long files
 			if (lineCount > 50) {
 				const preview = typedInput.content.split("\n").slice(0, 30).join("\n");
-				parts.push(`\`\`\`${ext}\n${preview.trim()}\n// ... ${lineCount - 30} more lines\n\`\`\``);
+				parts.push(
+					`\`\`\`${ext}\n${preview.trim()}\n// ... ${lineCount - 30} more lines\n\`\`\``,
+				);
 			} else {
 				parts.push(`\`\`\`${ext}\n${typedInput.content.trim()}\n\`\`\``);
 			}
@@ -697,32 +773,44 @@ function renderToolUseContent(
 			if (oldLines > 30 || newLines > 30) {
 				parts.push(`*Replaced ${oldLines} lines with ${newLines} lines*`);
 				// Show first few lines of the diff
-				const oldPreview = typedInput.old_string.split("\n").slice(0, 10).join("\n-");
-				const newPreview = typedInput.new_string.split("\n").slice(0, 10).join("\n+");
+				const oldPreview = typedInput.old_string
+					.split("\n")
+					.slice(0, 10)
+					.join("\n-");
+				const newPreview = typedInput.new_string
+					.split("\n")
+					.slice(0, 10)
+					.join("\n+");
 				parts.push("<details><summary>Diff preview</summary>");
-				parts.push(`\`\`\`diff\n-${oldPreview.trimEnd()}\n...\n+${newPreview.trimEnd()}\n...\n\`\`\``);
+				parts.push(
+					`\`\`\`diff\n-${oldPreview.trimEnd()}\n...\n+${newPreview.trimEnd()}\n...\n\`\`\``,
+				);
 				parts.push("</details>");
 			} else {
 				const oldStr = typedInput.old_string.replace(/\n/g, "\n-");
 				const newStr = typedInput.new_string.replace(/\n/g, "\n+");
-				parts.push(`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``);
+				parts.push(
+					`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``,
+				);
 			}
 			break;
 		}
 		case "Bash": {
 			const typedInput = input as { command: string; description?: string };
-			const desc = typedInput.description
-				? `: ${typedInput.description}`
-				: "";
+			const desc = typedInput.description ? `: ${typedInput.description}` : "";
 			parts.push(`## Bash${desc}`);
-			parts.push(`\`\`\`bash\n${maskText(ctx, typedInput.command.trim())}\n\`\`\``);
+			parts.push(
+				`\`\`\`bash\n${maskText(ctx, typedInput.command.trim())}\n\`\`\``,
+			);
 			renderToolResultIfExists(ctx, parts, id);
 			break;
 		}
 		case "Glob":
 		case "Grep": {
 			const typedInput = input as { pattern: string; path?: string };
-			const pathStr = typedInput.path ? ` in \`${maskPath(ctx, typedInput.path)}\`` : "";
+			const pathStr = typedInput.path
+				? ` in \`${maskPath(ctx, typedInput.path)}\``
+				: "";
 			parts.push(`## ${name}: \`${typedInput.pattern}\`${pathStr}`);
 			renderToolResultIfExists(ctx, parts, id);
 			break;
@@ -783,17 +871,28 @@ function renderToolUseContent(
 			for (const q of typedInput.questions ?? []) {
 				parts.push(`**${q.question}**`);
 				if (q.options?.length) {
-					parts.push(q.options.map((opt: string | { label: string; description?: string }, i: number) => {
-						if (typeof opt === "string") return `${i + 1}. ${opt}`;
-						return `${i + 1}. **${opt.label}**${opt.description ? ` — ${opt.description}` : ""}`;
-					}).join("\n"));
+					parts.push(
+						q.options
+							.map(
+								(
+									opt: string | { label: string; description?: string },
+									i: number,
+								) => {
+									if (typeof opt === "string") return `${i + 1}. ${opt}`;
+									return `${i + 1}. **${opt.label}**${opt.description ? ` — ${opt.description}` : ""}`;
+								},
+							)
+							.join("\n"),
+					);
 				}
 			}
 			break;
 		}
 		case "EnterPlanMode": {
 			parts.push("## Entering Plan Mode");
-			parts.push("*Switching to planning mode to design implementation approach...*");
+			parts.push(
+				"*Switching to planning mode to design implementation approach...*",
+			);
 			break;
 		}
 		case "ExitPlanMode": {
@@ -857,7 +956,9 @@ function renderToolResultIfExists(
 
 function cleanToolResultContent(content: string): string {
 	// Remove system reminders from tool results
-	return content.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "").trim();
+	return content
+		.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "")
+		.trim();
 }
 
 function renderSubagentIfExists(
