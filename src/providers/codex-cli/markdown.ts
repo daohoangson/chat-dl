@@ -175,7 +175,9 @@ function renderToolCall(
 
 	const formattedArgs = formatArguments(rawArgs);
 	if (formattedArgs) {
-		ctx.markdown.push(formatCodeBlock(formattedArgs.text, formattedArgs.language));
+		ctx.markdown.push(
+			formatCodeBlock(formattedArgs.text, formattedArgs.language),
+		);
 	}
 
 	const output = ctx.toolOutputs.get(callId);
@@ -208,7 +210,10 @@ function renderToolOutput(ctx: RenderContext, output: ToolOutput): void {
 		return;
 	}
 
-	const renderedOutput = output.map(formatMessageContentItem).filter(Boolean).join("\n\n");
+	const renderedOutput = output
+		.map(formatMessageContentItem)
+		.filter(Boolean)
+		.join("\n\n");
 	if (!renderedOutput.trim()) return;
 	ctx.markdown.push("### Output");
 	ctx.markdown.push(renderedOutput);
@@ -243,13 +248,15 @@ function collectUsage(ctx: RenderContext, line: CodexCliLine): void {
 	const info = line.payload.info;
 	if (!info || info === null || typeof info !== "object") return;
 
-	const totalUsage = (info as { total_token_usage?: TokenUsage }).total_token_usage;
+	const totalUsage = (info as { total_token_usage?: TokenUsage })
+		.total_token_usage;
 	if (totalUsage) {
 		ctx.usageFromTotals = toUsageStats(totalUsage);
 		return;
 	}
 
-	const lastUsage = (info as { last_token_usage?: TokenUsage }).last_token_usage;
+	const lastUsage = (info as { last_token_usage?: TokenUsage })
+		.last_token_usage;
 	if (lastUsage) {
 		addUsage(ctx.usage, lastUsage);
 	}
@@ -293,11 +300,15 @@ function renderUsageSummary(ctx: RenderContext): void {
 	];
 
 	if (usage.cachedInputTokens > 0) {
-		lines.push(`- **Cached input tokens:** ${formatNumber(usage.cachedInputTokens)}`);
+		lines.push(
+			`- **Cached input tokens:** ${formatNumber(usage.cachedInputTokens)}`,
+		);
 	}
 
 	if (usage.reasoningTokens > 0) {
-		lines.push(`- **Reasoning tokens:** ${formatNumber(usage.reasoningTokens)}`);
+		lines.push(
+			`- **Reasoning tokens:** ${formatNumber(usage.reasoningTokens)}`,
+		);
 	}
 
 	if (usage.totalTokens > 0) {
@@ -317,7 +328,9 @@ function renderUsageSummary(ctx: RenderContext): void {
 				usage.outputTokens * pricing.output) /
 			1_000_000;
 
-		lines.push(`- **Estimated cost:** $${cost.toFixed(2)} (${pricing.modelLabel})`);
+		lines.push(
+			`- **Estimated cost:** $${cost.toFixed(2)} (${pricing.modelLabel})`,
+		);
 		if (pricing.note) {
 			lines.push(`- **Pricing note:** ${pricing.note}`);
 		}

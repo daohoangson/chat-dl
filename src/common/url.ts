@@ -1,4 +1,9 @@
-export type Provider = "grok" | "chatgpt" | "claude" | "claude-code" | "codex-cli";
+export type Provider =
+	| "grok"
+	| "chatgpt"
+	| "claude"
+	| "claude-code"
+	| "codex-cli";
 
 export function getProviderByUrl(url: string): Provider | undefined {
 	const hostname = new URL(url).hostname;
@@ -26,7 +31,8 @@ export function getProviderByUrl(url: string): Provider | undefined {
 export function getProviderByPath(path: string): Provider | undefined {
 	if (
 		path.endsWith(".jsonl") &&
-		(path.includes("/.codex/sessions/") || path.includes("\\.codex\\sessions\\"))
+		(path.includes("/.codex/sessions/") ||
+			path.includes("\\.codex\\sessions\\"))
 	) {
 		return "codex-cli";
 	}
@@ -38,7 +44,11 @@ export function getProviderByPath(path: string): Provider | undefined {
 
 export function isLocalPath(input: string): boolean {
 	// Check if input is a local file path (not a URL)
-	if (input.startsWith("/") || input.startsWith("./") || input.startsWith("../")) {
+	if (
+		input.startsWith("/") ||
+		input.startsWith("./") ||
+		input.startsWith("../")
+	) {
 		return true;
 	}
 	// Windows paths

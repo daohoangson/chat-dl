@@ -59,7 +59,9 @@ function processDirectory(
 			processed++;
 		} catch (error) {
 			const relativePath = relative(baseInputDir, inputPath);
-			console.error(`✗ ${relativePath}: ${error instanceof Error ? error.message : error}`);
+			console.error(
+				`✗ ${relativePath}: ${error instanceof Error ? error.message : error}`,
+			);
 			skipped++;
 		}
 	}

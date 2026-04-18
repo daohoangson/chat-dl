@@ -55,7 +55,9 @@ const functionCallPayloadSchema = v.looseObject({
 	call_id: v.string(),
 });
 
-export type FunctionCallPayload = v.InferOutput<typeof functionCallPayloadSchema>;
+export type FunctionCallPayload = v.InferOutput<
+	typeof functionCallPayloadSchema
+>;
 
 const functionCallOutputPayloadSchema = v.looseObject({
 	type: v.literal("function_call_output"),
@@ -63,7 +65,9 @@ const functionCallOutputPayloadSchema = v.looseObject({
 	output: v.union([v.string(), messageContentSchema]),
 });
 
-export type FunctionCallOutputPayload = v.InferOutput<typeof functionCallOutputPayloadSchema>;
+export type FunctionCallOutputPayload = v.InferOutput<
+	typeof functionCallOutputPayloadSchema
+>;
 
 const customToolCallPayloadSchema = v.looseObject({
 	type: v.literal("custom_tool_call"),
@@ -73,7 +77,9 @@ const customToolCallPayloadSchema = v.looseObject({
 	input: v.string(),
 });
 
-export type CustomToolCallPayload = v.InferOutput<typeof customToolCallPayloadSchema>;
+export type CustomToolCallPayload = v.InferOutput<
+	typeof customToolCallPayloadSchema
+>;
 
 const customToolCallOutputPayloadSchema = v.looseObject({
 	type: v.literal("custom_tool_call_output"),
@@ -94,14 +100,18 @@ const webSearchCallPayloadSchema = v.looseObject({
 	action: v.optional(v.unknown()),
 });
 
-export type WebSearchCallPayload = v.InferOutput<typeof webSearchCallPayloadSchema>;
+export type WebSearchCallPayload = v.InferOutput<
+	typeof webSearchCallPayloadSchema
+>;
 
 const ghostSnapshotPayloadSchema = v.looseObject({
 	type: v.literal("ghost_snapshot"),
 	ghost_commit: v.optional(v.unknown()),
 });
 
-export type GhostSnapshotPayload = v.InferOutput<typeof ghostSnapshotPayloadSchema>;
+export type GhostSnapshotPayload = v.InferOutput<
+	typeof ghostSnapshotPayloadSchema
+>;
 
 export const responseItemPayloadSchema = v.variant("type", [
 	messagePayloadSchema,
@@ -114,7 +124,9 @@ export const responseItemPayloadSchema = v.variant("type", [
 	ghostSnapshotPayloadSchema,
 ]);
 
-export type ResponseItemPayload = v.InferOutput<typeof responseItemPayloadSchema>;
+export type ResponseItemPayload = v.InferOutput<
+	typeof responseItemPayloadSchema
+>;
 
 const responseItemLineSchema = v.looseObject({
 	type: v.literal("response_item"),
@@ -196,7 +208,9 @@ export const codexCliLineSchema = v.variant("type", [
 
 export type CodexCliLine = v.InferOutput<typeof codexCliLineSchema>;
 
-export function isResponseItemLine(line: CodexCliLine): line is ResponseItemLine {
+export function isResponseItemLine(
+	line: CodexCliLine,
+): line is ResponseItemLine {
 	return line.type === "response_item";
 }
 

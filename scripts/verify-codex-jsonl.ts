@@ -36,7 +36,9 @@ function collectJsonlFiles(dir: string, acc: CandidateFile[]): void {
 }
 
 function getRootDir(): string {
-	return process.env.CODEX_SESSIONS_DIR ?? join(homedir(), ".codex", "sessions");
+	return (
+		process.env.CODEX_SESSIONS_DIR ?? join(homedir(), ".codex", "sessions")
+	);
 }
 
 function getLimit(): number {

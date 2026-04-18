@@ -28,7 +28,11 @@ export type ThinkingContent = v.InferOutput<typeof thinkingContentSchema>;
 
 // Assistant message content is an array of text, tool_use, or thinking
 const assistantContentSchema = v.array(
-	v.variant("type", [textContentSchema, toolUseContentSchema, thinkingContentSchema]),
+	v.variant("type", [
+		textContentSchema,
+		toolUseContentSchema,
+		thinkingContentSchema,
+	]),
 );
 
 // Image content in tool results (e.g., screenshots)
@@ -49,7 +53,13 @@ const toolReferenceContentSchema = v.looseObject({
 // Tool result content can be string, or array of text/image/tool_reference
 const toolResultInnerContentSchema = v.union([
 	v.string(),
-	v.array(v.union([textContentSchema, imageContentSchema, toolReferenceContentSchema])),
+	v.array(
+		v.union([
+			textContentSchema,
+			imageContentSchema,
+			toolReferenceContentSchema,
+		]),
+	),
 ]);
 
 // Tool result content in user messages
@@ -240,7 +250,9 @@ export function isSummaryLine(line: JsonlLine): line is SummaryLine {
 	return line.type === "summary";
 }
 
-export function isPermissionModeLine(line: JsonlLine): line is PermissionModeLine {
+export function isPermissionModeLine(
+	line: JsonlLine,
+): line is PermissionModeLine {
 	return line.type === "permission-mode";
 }
 
