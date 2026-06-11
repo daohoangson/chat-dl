@@ -6,7 +6,6 @@ import type {
 	AttachmentLine,
 	FallbackContent,
 	JsonlLine,
-	PermissionModeLine,
 	SummaryLine,
 	SystemLine,
 	TextContent,
@@ -19,7 +18,6 @@ import type {
 import {
 	isAssistantLine,
 	isAttachmentLine,
-	isPermissionModeLine,
 	isSummaryLine,
 	isSystemLine,
 	isUserLine,
@@ -103,9 +101,7 @@ export function renderFromLines(
 
 	// Second pass: render messages
 	for (const line of lines) {
-		if (isPermissionModeLine(line)) {
-			renderPermissionModeLine(ctx, line);
-		} else if (isSystemLine(line)) {
+		if (isSystemLine(line)) {
 			renderSystemLine(ctx, line);
 		} else if (isAttachmentLine(line)) {
 			renderAttachmentLine(ctx, line);
@@ -281,17 +277,6 @@ function renderSummaryLine(ctx: RenderContext, line: SummaryLine): void {
 		ctx.markdown.push(`> **Summary:** ${line.summary}`);
 		ctx.lastSender = null; // Reset sender after summary
 	}
-}
-
-function renderPermissionModeLine(
-	ctx: RenderContext,
-	line: PermissionModeLine,
-): void {
-	if (!line.permissionMode?.trim()) {
-		return;
-	}
-
-	pushEventBlock(ctx, `> **Permission mode:** \`${line.permissionMode}\``);
 }
 
 function renderSystemLine(ctx: RenderContext, line: SystemLine): void {

@@ -139,17 +139,6 @@ const toolUseResultSchema = v.union([
 	v.string(), // Error messages
 ]);
 
-export type ToolUseResult = v.InferOutput<typeof toolUseResultSchema>;
-
-// Permission mode line - session metadata
-const permissionModeLineSchema = v.looseObject({
-	type: v.literal("permission-mode"),
-	permissionMode: v.optional(v.string()),
-	sessionId: v.optional(v.string()),
-});
-
-export type PermissionModeLine = v.InferOutput<typeof permissionModeLineSchema>;
-
 // User line (type, message.content, and toolUseResult are used)
 const userLineSchema = v.looseObject({
 	type: v.literal("user"),
@@ -310,14 +299,6 @@ const summaryLineSchema = v.looseObject({
 
 export type SummaryLine = v.InferOutput<typeof summaryLineSchema>;
 
-// Progress line - hook progress, agent progress events
-const progressLineSchema = v.looseObject({
-	type: v.literal("progress"),
-	data: v.optional(v.unknown()),
-});
-
-export type ProgressLine = v.InferOutput<typeof progressLineSchema>;
-
 const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("ai-title") }),
 	v.looseObject({ type: v.literal("bridge-session") }),
@@ -332,24 +313,10 @@ const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("started") }),
 ]);
 
-export type SkippedJsonlLine = v.InferOutput<typeof skippedJsonlLineSchema>;
-
-// Union of rendered line types.
-export const renderedJsonlLineSchema = v.variant("type", [
-	userLineSchema,
-	assistantLineSchema,
-	permissionModeLineSchema,
-	systemLineSchema,
-	attachmentLineSchema,
-	summaryLineSchema,
-]);
-
-export type RenderedJsonlLine = v.InferOutput<typeof renderedJsonlLineSchema>;
-
 export const jsonlLineSchema = v.variant("type", [
 	userLineSchema,
 	assistantLineSchema,
-	permissionModeLineSchema,
+	v.looseObject({ type: v.literal("permission-mode") }),
 	systemLineSchema,
 	attachmentLineSchema,
 	summaryLineSchema,
@@ -369,12 +336,6 @@ export function isAssistantLine(line: JsonlLine): line is AssistantLine {
 
 export function isSummaryLine(line: JsonlLine): line is SummaryLine {
 	return line.type === "summary";
-}
-
-export function isPermissionModeLine(
-	line: JsonlLine,
-): line is PermissionModeLine {
-	return line.type === "permission-mode";
 }
 
 export function isSystemLine(line: JsonlLine): line is SystemLine {
