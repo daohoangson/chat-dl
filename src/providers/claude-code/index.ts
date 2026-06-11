@@ -1,11 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { parseSchemaOrThrow } from "@/common";
-import { renderFromLines, type RenderOptions } from "./markdown";
+import { type RenderOptions, renderFromLines } from "./markdown";
 import {
+	type JsonlLine,
 	genericJsonlLineSchema,
 	renderedJsonlLineSchema,
-	type JsonlLine,
 } from "./models";
 
 function parseJsonlLine(json: unknown): JsonlLine {

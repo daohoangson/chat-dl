@@ -1,5 +1,5 @@
-import { readdirSync, mkdirSync, writeFileSync } from "node:fs";
-import { join, relative, dirname, basename, extname } from "node:path";
+import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
+import { basename, dirname, extname, join, relative } from "node:path";
 import { getProviderByPath, renderMarkdownFromPath } from "@/providers";
 import type { CommandModule } from "yargs";
 
@@ -48,7 +48,7 @@ function processDirectory(
 			// Maintain relative path structure
 			const relativePath = relative(baseInputDir, inputPath);
 			const relativeDir = dirname(relativePath);
-			const outputName = basename(entry.name, extname(entry.name)) + ".md";
+			const outputName = `${basename(entry.name, extname(entry.name))}.md`;
 			const outputPath = join(outputDir, relativeDir, outputName);
 
 			// Ensure output subdirectory exists

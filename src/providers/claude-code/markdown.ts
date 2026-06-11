@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
 import { homedir, userInfo } from "node:os";
+import { join } from "node:path";
 import type {
-	AttachmentLine,
 	AssistantLine,
+	AttachmentLine,
 	JsonlLine,
 	PermissionModeLine,
 	SummaryLine,

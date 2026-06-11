@@ -1,10 +1,10 @@
 import * as v from "valibot";
 import {
-	artifacts as artifactModels,
 	repl,
 	type ContentToolResult,
 	type ContentToolUse,
 	type Message,
+	artifacts as artifactModels,
 } from "./models";
 
 interface RenderContext {

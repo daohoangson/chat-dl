@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import * as v from "valibot";
 import { renderFromLines } from "./markdown";
-import { codexCliLineSchema, type CodexCliLine } from "./models";
+import { type CodexCliLine, codexCliLineSchema } from "./models";
 
 export function parseJsonlFromPath(filePath: string): CodexCliLine[] {
 	const content = readFileSync(filePath, "utf-8");
