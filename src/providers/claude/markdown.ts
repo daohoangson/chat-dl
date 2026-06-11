@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { formatCodeBlock } from "../../common/markdown";
 import {
 	repl,
 	type ContentToolResult,
@@ -55,14 +56,14 @@ function renderToolUse(ctx: RenderContext, content: ContentToolUse): boolean {
 		case "repl": {
 			const { input } = v.parse(repl.toolUseSchema, content);
 			ctx.markdown.push(`## Tool use: ${name}`);
-			ctx.markdown.push(`\`\`\`js\n${input.code.trim()}\n\`\`\``);
+			ctx.markdown.push(formatCodeBlock(input.code.trim(), "js"));
 			return true;
 		}
 		default: {
 			const str =
 				typeof input === "string" ? input : JSON.stringify(input, null, 2);
 			ctx.markdown.push(`## Tool use: ${name}`);
-			ctx.markdown.push(`\`\`\`\n${str.trim()}\n\`\`\``);
+			ctx.markdown.push(formatCodeBlock(str.trim()));
 			return true;
 		}
 	}
@@ -92,7 +93,7 @@ function renderToolUseArtifact(
 
 			artifacts.set(input.id, { title: input.title, extension });
 			markdown.push(`## Create artifact \`${input.title}\``);
-			markdown.push(`\`\`\`${extension}\n${input.content.trim()}\`\`\``);
+			markdown.push(formatCodeBlock(input.content.trim(), extension));
 			return true;
 		}
 		case "rewrite": {
@@ -101,7 +102,7 @@ function renderToolUseArtifact(
 				throw new Error(`Unknown artifact id: ${input.id}`);
 			}
 			markdown.push(`## Rewrite artifact \`${item.title}\``);
-			markdown.push(`\`\`\`${item.extension}\n${input.content.trim()}\n\`\`\``);
+			markdown.push(formatCodeBlock(input.content.trim(), item.extension));
 			return true;
 		}
 		case "update": {
@@ -113,7 +114,7 @@ function renderToolUseArtifact(
 			const oldStr = input.old_str.replaceAll(/\n/g, "\n-");
 			const newStr = input.new_str.replaceAll(/\n/g, "\n+");
 			markdown.push(
-				`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``,
+				formatCodeBlock(`-${oldStr.trimEnd()}\n+${newStr.trimEnd()}`, "diff"),
 			);
 			return true;
 		}
@@ -133,7 +134,7 @@ function renderToolResult(
 	for (const item of result) {
 		ctx.markdown.push("<details><summary>Tool result</summary>");
 		ctx.markdown.push(
-			`\`\`\`json\n${JSON.stringify(item.text, null, 2)}\n\`\`\``,
+			formatCodeBlock(JSON.stringify(item.text, null, 2), "json"),
 		);
 		ctx.markdown.push("</details>\n\n");
 	}

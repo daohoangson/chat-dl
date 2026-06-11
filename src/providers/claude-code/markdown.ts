@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
 import { join } from "node:path";
+import { formatCodeBlock } from "../../common/markdown";
 import type {
 	AssistantLine,
 	AttachmentLine,
@@ -443,9 +444,7 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 					[
 						"<details><summary>Snippet</summary>",
 						"",
-						"```text",
-						attachment.snippet.trim().slice(0, 1200),
-						"```",
+						formatCodeBlock(attachment.snippet.trim().slice(0, 1200), "text"),
 						"",
 						"</details>",
 					].join("\n"),
@@ -547,16 +546,12 @@ function formatAttachmentOutputBlock(
 
 	if (stdout?.trim()) {
 		sections.push("**stdout**");
-		sections.push("```text");
-		sections.push(stdout.trim().slice(0, 2000));
-		sections.push("```");
+		sections.push(formatCodeBlock(stdout.trim().slice(0, 2000), "text"));
 	}
 
 	if (stderr?.trim()) {
 		sections.push("**stderr**");
-		sections.push("```text");
-		sections.push(stderr.trim().slice(0, 2000));
-		sections.push("```");
+		sections.push(formatCodeBlock(stderr.trim().slice(0, 2000), "text"));
 	}
 
 	if (sections.length === 0) {
@@ -797,10 +792,13 @@ function renderToolUseContent(
 			if (lineCount > 50) {
 				const preview = contentText.split("\n").slice(0, 30).join("\n");
 				parts.push(
-					`\`\`\`${ext}\n${preview.trim()}\n// ... ${lineCount - 30} more lines\n\`\`\``,
+					formatCodeBlock(
+						`${preview.trim()}\n// ... ${lineCount - 30} more lines`,
+						ext,
+					),
 				);
 			} else {
-				parts.push(`\`\`\`${ext}\n${contentText.trim()}\n\`\`\``);
+				parts.push(formatCodeBlock(contentText.trim(), ext));
 			}
 			break;
 		}
@@ -823,14 +821,17 @@ function renderToolUseContent(
 				const newPreview = newString.split("\n").slice(0, 10).join("\n+");
 				parts.push("<details><summary>Diff preview</summary>");
 				parts.push(
-					`\`\`\`diff\n-${oldPreview.trimEnd()}\n...\n+${newPreview.trimEnd()}\n...\n\`\`\``,
+					formatCodeBlock(
+						`-${oldPreview.trimEnd()}\n...\n+${newPreview.trimEnd()}\n...`,
+						"diff",
+					),
 				);
 				parts.push("</details>");
 			} else {
 				const oldStr = oldString.replace(/\n/g, "\n-");
 				const newStr = newString.replace(/\n/g, "\n+");
 				parts.push(
-					`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``,
+					formatCodeBlock(`-${oldStr.trimEnd()}\n+${newStr.trimEnd()}`, "diff"),
 				);
 			}
 			break;
@@ -840,7 +841,7 @@ function renderToolUseContent(
 			const desc = typedInput.description ? `: ${typedInput.description}` : "";
 			const command = typedInput.command ?? "";
 			parts.push(`## Bash${desc}`);
-			parts.push(`\`\`\`\`bash\n${maskText(ctx, command.trim())}\n\`\`\``);
+			parts.push(formatCodeBlock(maskText(ctx, command.trim()), "bash"));
 			renderToolResultIfExists(ctx, parts, id);
 			break;
 		}
@@ -882,9 +883,7 @@ function renderToolUseContent(
 				parts.push(`Agent: ${typedInput.subagent_type}`);
 			}
 			if (typedInput.prompt) {
-				parts.push(
-					["```", maskText(ctx, typedInput.prompt.trim()), "```"].join("\n"),
-				);
+				parts.push(formatCodeBlock(maskText(ctx, typedInput.prompt.trim())));
 			}
 			// Render subagent inline if available
 			renderSubagentIfExists(ctx, parts, id);
@@ -951,7 +950,7 @@ function renderToolUseContent(
 			const str =
 				typeof input === "string" ? input : JSON.stringify(input, null, 2);
 			parts.push(`## Tool use: ${name}`);
-			parts.push(`\`\`\`\n${maskText(ctx, str.trim())}\n\`\`\``);
+			parts.push(formatCodeBlock(maskText(ctx, str.trim())));
 			break;
 		}
 	}
@@ -991,7 +990,7 @@ function renderToolResultIfExists(
 		const cleanedContent = cleanToolResultContent(textContent);
 		if (cleanedContent.trim()) {
 			parts.push("<details><summary>Output</summary>");
-			parts.push(`\`\`\`\n${maskText(ctx, cleanedContent.trim())}\n\`\`\``);
+			parts.push(formatCodeBlock(maskText(ctx, cleanedContent.trim())));
 			parts.push("</details>");
 		}
 	}

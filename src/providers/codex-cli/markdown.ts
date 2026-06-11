@@ -1,3 +1,4 @@
+import { formatCodeBlock } from "../../common/markdown";
 import type {
 	CodexCliLine,
 	MessageContent,
@@ -651,9 +652,4 @@ function guessLanguage(value: string): string {
 	if (value.startsWith("*** Begin Patch")) return "diff";
 	if (value.startsWith("{") || value.startsWith("[")) return "json";
 	return "text";
-}
-
-function formatCodeBlock(text: string, language?: string): string {
-	const lang = language ? language : "";
-	return `\`\`\`${lang}\n${text}\n\`\`\``;
 }
