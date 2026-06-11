@@ -399,11 +399,20 @@ function getPricing(model: string | null): PricingInfo | null {
 	if (!model) return null;
 	const normalized = model.toLowerCase();
 
+	if (normalized.startsWith("gpt-5.3-codex")) {
+		return {
+			modelLabel: "gpt-5.3-codex",
+			input: 1.75,
+			cacheRead: 0.175,
+			output: 14,
+		};
+	}
+
 	if (normalized.startsWith("gpt-5.2-codex")) {
 		return {
 			modelLabel: "gpt-5.2-codex",
 			input: 1.75,
-			cacheRead: 0.17,
+			cacheRead: 0.175,
 			output: 14,
 		};
 	}
@@ -412,7 +421,7 @@ function getPricing(model: string | null): PricingInfo | null {
 		return {
 			modelLabel: "gpt-5.1-codex-max",
 			input: 1.25,
-			cacheRead: 0.13,
+			cacheRead: 0.125,
 			output: 10,
 		};
 	}
@@ -421,7 +430,7 @@ function getPricing(model: string | null): PricingInfo | null {
 		return {
 			modelLabel: "gpt-5.1-codex-mini",
 			input: 0.25,
-			cacheRead: 0.03,
+			cacheRead: 0.025,
 			output: 2,
 		};
 	}
@@ -430,7 +439,7 @@ function getPricing(model: string | null): PricingInfo | null {
 		return {
 			modelLabel: "gpt-5-codex",
 			input: 1.25,
-			cacheRead: 0.13,
+			cacheRead: 0.125,
 			output: 10,
 		};
 	}
@@ -439,7 +448,7 @@ function getPricing(model: string | null): PricingInfo | null {
 		return {
 			modelLabel: "gpt-5",
 			input: 1.25,
-			cacheRead: 0.13,
+			cacheRead: 0.125,
 			output: 10,
 		};
 	}

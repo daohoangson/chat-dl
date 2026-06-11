@@ -34,6 +34,14 @@ interface UsageStats {
 	cacheReadTokens: number;
 }
 
+interface PricingInfo {
+	modelLabel: string;
+	input: number;
+	output: number;
+	cacheWrite: number;
+	cacheRead: number;
+}
+
 interface RenderContext {
 	markdown: string[];
 	toolResults: Map<string, ToolResultContent>;
@@ -584,17 +592,45 @@ function accumulateUsage(ctx: RenderContext, usage: Usage): void {
 	ctx.usage.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
 }
 
-// Pricing per million tokens (as of Dec 2025)
-// Source: https://www.anthropic.com/pricing
-// Note: These prices may be outdated
+// Pricing per million tokens.
+// Source: https://models.dev/providers/anthropic
 const PRICING = {
-	// Haiku 4.5
-	haiku: { input: 1, output: 5, cacheWrite: 1.25, cacheRead: 0.1 },
-	// Sonnet 4/4.5
-	sonnet: { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 },
-	// Opus 4.5
-	opus: { input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.5 },
-};
+	fable: {
+		modelLabel: "claude-fable-5",
+		input: 10,
+		output: 50,
+		cacheWrite: 12.5,
+		cacheRead: 1,
+	},
+	haiku: {
+		modelLabel: "claude-haiku",
+		input: 1,
+		output: 5,
+		cacheWrite: 1.25,
+		cacheRead: 0.1,
+	},
+	sonnet: {
+		modelLabel: "claude-sonnet",
+		input: 3,
+		output: 15,
+		cacheWrite: 3.75,
+		cacheRead: 0.3,
+	},
+	opus: {
+		modelLabel: "claude-opus-4.5+",
+		input: 5,
+		output: 25,
+		cacheWrite: 6.25,
+		cacheRead: 0.5,
+	},
+	opusLegacy: {
+		modelLabel: "claude-opus-4/4.1",
+		input: 15,
+		output: 75,
+		cacheWrite: 18.75,
+		cacheRead: 1.5,
+	},
+} satisfies Record<string, PricingInfo>;
 
 function renderUsageSummary(ctx: RenderContext): void {
 	const { usage, lastModel } = ctx;
@@ -629,20 +665,30 @@ function renderUsageSummary(ctx: RenderContext): void {
 			(usage.cacheCreationTokens * pricing.cacheWrite) / 1_000_000 +
 			(usage.cacheReadTokens * pricing.cacheRead) / 1_000_000;
 
-		lines.push(`- **Estimated cost:** $${cost.toFixed(2)}`);
+		lines.push(
+			`- **Estimated cost:** $${cost.toFixed(2)} (${pricing.modelLabel})`,
+		);
 	}
 
 	ctx.markdown.push(lines.join("\n"));
-	ctx.markdown.push(
-		"*Pricing based on Dec 2025 rates from anthropic.com/pricing and may be outdated.*",
-	);
 }
 
-function getPricing(model: string | null): (typeof PRICING)["sonnet"] | null {
+function getPricing(model: string | null): PricingInfo | null {
 	if (!model) return PRICING.sonnet; // Default to sonnet
-	if (model.includes("opus")) return PRICING.opus;
-	if (model.includes("haiku")) return PRICING.haiku;
-	if (model.includes("sonnet")) return PRICING.sonnet;
+	const normalized = model.toLowerCase();
+	if (normalized.includes("fable")) return PRICING.fable;
+	if (
+		normalized.endsWith("opus-4") ||
+		normalized.includes("opus-4-0") ||
+		normalized.includes("opus-4-1") ||
+		normalized.includes("opus-4.1") ||
+		normalized.includes("opus-4-202")
+	) {
+		return PRICING.opusLegacy;
+	}
+	if (normalized.includes("opus")) return PRICING.opus;
+	if (normalized.includes("haiku")) return PRICING.haiku;
+	if (normalized.includes("sonnet")) return PRICING.sonnet;
 	return PRICING.sonnet; // Default
 }
 
