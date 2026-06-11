@@ -4,6 +4,7 @@ import { join } from "node:path";
 import type {
 	AssistantLine,
 	AttachmentLine,
+	FallbackContent,
 	JsonlLine,
 	PermissionModeLine,
 	SummaryLine,
@@ -230,6 +231,9 @@ function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
 				break;
 			case "thinking":
 				renderThinkingContent(parts, item);
+				break;
+			case "fallback":
+				renderFallbackContent(parts, item);
 				break;
 		}
 	}
@@ -726,6 +730,19 @@ function renderThinkingContent(
 	}
 }
 
+function renderFallbackContent(
+	parts: string[],
+	content: FallbackContent,
+): void {
+	const fromModel = content.from?.model;
+	const toModel = content.to?.model;
+	if (!fromModel && !toModel) return;
+
+	const fromStr = fromModel ? formatModelName(fromModel) : "unknown";
+	const toStr = toModel ? formatModelName(toModel) : "unknown";
+	parts.push(`*Model fallback: ${fromStr} -> ${toStr}*`);
+}
+
 function renderToolUseContent(
 	ctx: RenderContext,
 	parts: string[],
@@ -735,55 +752,52 @@ function renderToolUseContent(
 
 	switch (name) {
 		case "Read": {
-			const typedInput = input as { file_path: string };
-			parts.push(`## Read \`${maskPath(ctx, typedInput.file_path)}\``);
+			const typedInput = input as { file_path?: string };
+			parts.push(`## Read \`${formatToolPath(ctx, typedInput.file_path)}\``);
 			break;
 		}
 		case "Write": {
-			const typedInput = input as { file_path: string; content: string };
-			const lineCount = typedInput.content.split("\n").length;
-			parts.push(`## Write \`${maskPath(ctx, typedInput.file_path)}\``);
+			const typedInput = input as { file_path?: string; content?: string };
+			const contentText = typedInput.content ?? "";
+			const lineCount = contentText.split("\n").length;
+			parts.push(`## Write \`${formatToolPath(ctx, typedInput.file_path)}\``);
 			const ext = getFileExtension(typedInput.file_path);
 			// Truncate long files
 			if (lineCount > 50) {
-				const preview = typedInput.content.split("\n").slice(0, 30).join("\n");
+				const preview = contentText.split("\n").slice(0, 30).join("\n");
 				parts.push(
 					`\`\`\`${ext}\n${preview.trim()}\n// ... ${lineCount - 30} more lines\n\`\`\``,
 				);
 			} else {
-				parts.push(`\`\`\`${ext}\n${typedInput.content.trim()}\n\`\`\``);
+				parts.push(`\`\`\`${ext}\n${contentText.trim()}\n\`\`\``);
 			}
 			break;
 		}
 		case "Edit": {
 			const typedInput = input as {
-				file_path: string;
-				old_string: string;
-				new_string: string;
+				file_path?: string;
+				old_string?: string;
+				new_string?: string;
 			};
-			parts.push(`## Edit \`${maskPath(ctx, typedInput.file_path)}\``);
-			const oldLines = typedInput.old_string.split("\n").length;
-			const newLines = typedInput.new_string.split("\n").length;
+			const oldString = typedInput.old_string ?? "";
+			const newString = typedInput.new_string ?? "";
+			parts.push(`## Edit \`${formatToolPath(ctx, typedInput.file_path)}\``);
+			const oldLines = oldString.split("\n").length;
+			const newLines = newString.split("\n").length;
 			// For large edits, show a summary
 			if (oldLines > 30 || newLines > 30) {
 				parts.push(`*Replaced ${oldLines} lines with ${newLines} lines*`);
 				// Show first few lines of the diff
-				const oldPreview = typedInput.old_string
-					.split("\n")
-					.slice(0, 10)
-					.join("\n-");
-				const newPreview = typedInput.new_string
-					.split("\n")
-					.slice(0, 10)
-					.join("\n+");
+				const oldPreview = oldString.split("\n").slice(0, 10).join("\n-");
+				const newPreview = newString.split("\n").slice(0, 10).join("\n+");
 				parts.push("<details><summary>Diff preview</summary>");
 				parts.push(
 					`\`\`\`diff\n-${oldPreview.trimEnd()}\n...\n+${newPreview.trimEnd()}\n...\n\`\`\``,
 				);
 				parts.push("</details>");
 			} else {
-				const oldStr = typedInput.old_string.replace(/\n/g, "\n-");
-				const newStr = typedInput.new_string.replace(/\n/g, "\n+");
+				const oldStr = oldString.replace(/\n/g, "\n-");
+				const newStr = newString.replace(/\n/g, "\n+");
 				parts.push(
 					`\`\`\`diff\n-${oldStr.trimEnd()}\n+${newStr.trimEnd()}\n\`\`\``,
 				);
@@ -791,12 +805,11 @@ function renderToolUseContent(
 			break;
 		}
 		case "Bash": {
-			const typedInput = input as { command: string; description?: string };
+			const typedInput = input as { command?: string; description?: string };
 			const desc = typedInput.description ? `: ${typedInput.description}` : "";
+			const command = typedInput.command ?? "";
 			parts.push(`## Bash${desc}`);
-			parts.push(
-				`\`\`\`bash\n${maskText(ctx, typedInput.command.trim())}\n\`\`\``,
-			);
+			parts.push(`\`\`\`\`bash\n${maskText(ctx, command.trim())}\n\`\`\``);
 			renderToolResultIfExists(ctx, parts, id);
 			break;
 		}
@@ -829,15 +842,19 @@ function renderToolUseContent(
 		}
 		case "Task": {
 			const typedInput = input as {
-				description: string;
-				prompt: string;
+				description?: string;
+				prompt?: string;
 				subagent_type?: string;
 			};
-			parts.push(`## Task: ${typedInput.description}`);
+			parts.push(`## Task: ${typedInput.description ?? "unknown"}`);
 			if (typedInput.subagent_type) {
 				parts.push(`Agent: ${typedInput.subagent_type}`);
 			}
-			parts.push(`\`\`\`\n${maskText(ctx, typedInput.prompt.trim())}\n\`\`\``);
+			if (typedInput.prompt) {
+				parts.push(
+					`\`\`\`\n${maskText(ctx, typedInput.prompt.trim())}\n\`\`\``,
+				);
+			}
 			// Render subagent inline if available
 			renderSubagentIfExists(ctx, parts, id);
 			break;
@@ -999,7 +1016,8 @@ function renderSubagentIfExists(
 	}
 }
 
-function getFileExtension(filePath: string): string {
+function getFileExtension(filePath: string | undefined): string {
+	if (!filePath) return "";
 	const parts = filePath.split(".");
 	if (parts.length > 1) {
 		const ext = parts[parts.length - 1] ?? "";
@@ -1017,6 +1035,11 @@ function getFileExtension(filePath: string): string {
 		return extMap[ext] ?? ext;
 	}
 	return "";
+}
+
+function formatToolPath(ctx: RenderContext, path: string | undefined): string {
+	if (!path) return "unknown";
+	return maskPath(ctx, path);
 }
 
 /**

@@ -26,12 +26,30 @@ const thinkingContentSchema = v.looseObject({
 
 export type ThinkingContent = v.InferOutput<typeof thinkingContentSchema>;
 
+// Fallback content in assistant messages when Claude retries with another model
+const fallbackContentSchema = v.looseObject({
+	type: v.literal("fallback"),
+	from: v.optional(
+		v.looseObject({
+			model: v.optional(v.string()),
+		}),
+	),
+	to: v.optional(
+		v.looseObject({
+			model: v.optional(v.string()),
+		}),
+	),
+});
+
+export type FallbackContent = v.InferOutput<typeof fallbackContentSchema>;
+
 // Assistant message content is an array of text, tool_use, or thinking
 const assistantContentSchema = v.array(
 	v.variant("type", [
 		textContentSchema,
 		toolUseContentSchema,
 		thinkingContentSchema,
+		fallbackContentSchema,
 	]),
 );
 
@@ -123,15 +141,6 @@ const toolUseResultSchema = v.union([
 
 export type ToolUseResult = v.InferOutput<typeof toolUseResultSchema>;
 
-// JSONL line types - using looseObject to allow extra fields we don't use
-
-// Base line schema for events we don't render explicitly.
-export const genericJsonlLineSchema = v.looseObject({
-	type: v.string(),
-});
-
-export type GenericJsonlLine = v.InferOutput<typeof genericJsonlLineSchema>;
-
 // Permission mode line - session metadata
 const permissionModeLineSchema = v.looseObject({
 	type: v.literal("permission-mode"),
@@ -165,7 +174,19 @@ export type AssistantLine = v.InferOutput<typeof assistantLineSchema>;
 // System line - selectively rendered
 const systemLineSchema = v.looseObject({
 	type: v.literal("system"),
-	subtype: v.optional(v.string()),
+	subtype: v.optional(
+		v.union([
+			v.literal("api_error"),
+			v.literal("away_summary"),
+			v.literal("bridge_status"),
+			v.literal("informational"),
+			v.literal("local_command"),
+			v.literal("model_refusal_fallback"),
+			v.literal("scheduled_task_fire"),
+			v.literal("stop_hook_summary"),
+			v.literal("turn_duration"),
+		]),
+	),
 	content: v.optional(v.string()),
 	url: v.optional(v.string()),
 	durationMs: v.optional(v.number()),
@@ -179,28 +200,102 @@ const systemLineSchema = v.looseObject({
 
 export type SystemLine = v.InferOutput<typeof systemLineSchema>;
 
+const attachmentPayloadFields = {
+	addedNames: v.optional(v.array(v.string())),
+	removedNames: v.optional(v.array(v.string())),
+	content: v.optional(v.unknown()),
+	itemCount: v.optional(v.number()),
+	skillCount: v.optional(v.number()),
+	isInitial: v.optional(v.boolean()),
+	filename: v.optional(v.string()),
+	snippet: v.optional(v.string()),
+	newDate: v.optional(v.string()),
+	stdout: v.optional(v.string()),
+	stderr: v.optional(v.string()),
+	exitCode: v.optional(v.number()),
+	hookName: v.optional(v.string()),
+	hookEvent: v.optional(v.string()),
+};
+
+const attachmentPayloadSchema = v.variant("type", [
+	v.looseObject({
+		type: v.literal("already_read_file"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("async_hook_response"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("command_permissions"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("date_change"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("deferred_tools_delta"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("directory"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("edited_text_file"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("file"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("hook_additional_context"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("hook_non_blocking_error"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("hook_success"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("mcp_instructions_delta"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("nested_memory"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("queued_command"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("skill_listing"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("task_reminder"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("ultra_effort_enter"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("workflow_keyword_request"),
+		...attachmentPayloadFields,
+	}),
+]);
+
 // Attachment line - selectively rendered
 const attachmentLineSchema = v.looseObject({
 	type: v.literal("attachment"),
-	attachment: v.optional(
-		v.looseObject({
-			type: v.string(),
-			addedNames: v.optional(v.array(v.string())),
-			removedNames: v.optional(v.array(v.string())),
-			content: v.optional(v.unknown()),
-			itemCount: v.optional(v.number()),
-			skillCount: v.optional(v.number()),
-			isInitial: v.optional(v.boolean()),
-			filename: v.optional(v.string()),
-			snippet: v.optional(v.string()),
-			newDate: v.optional(v.string()),
-			stdout: v.optional(v.string()),
-			stderr: v.optional(v.string()),
-			exitCode: v.optional(v.number()),
-			hookName: v.optional(v.string()),
-			hookEvent: v.optional(v.string()),
-		}),
-	),
+	attachment: v.optional(attachmentPayloadSchema),
 	timestamp: v.optional(v.string()),
 });
 
@@ -223,7 +318,23 @@ const progressLineSchema = v.looseObject({
 
 export type ProgressLine = v.InferOutput<typeof progressLineSchema>;
 
-// Union of rendered line types only. Skipped line types use genericJsonlLineSchema.
+const skippedJsonlLineSchema = v.variant("type", [
+	v.looseObject({ type: v.literal("ai-title") }),
+	v.looseObject({ type: v.literal("bridge-session") }),
+	v.looseObject({ type: v.literal("custom-title") }),
+	v.looseObject({ type: v.literal("file-history-snapshot") }),
+	v.looseObject({ type: v.literal("last-prompt") }),
+	v.looseObject({ type: v.literal("mode") }),
+	v.looseObject({ type: v.literal("pr-link") }),
+	v.looseObject({ type: v.literal("progress") }),
+	v.looseObject({ type: v.literal("queue-operation") }),
+	v.looseObject({ type: v.literal("result") }),
+	v.looseObject({ type: v.literal("started") }),
+]);
+
+export type SkippedJsonlLine = v.InferOutput<typeof skippedJsonlLineSchema>;
+
+// Union of rendered line types.
 export const renderedJsonlLineSchema = v.variant("type", [
 	userLineSchema,
 	assistantLineSchema,
@@ -235,7 +346,17 @@ export const renderedJsonlLineSchema = v.variant("type", [
 
 export type RenderedJsonlLine = v.InferOutput<typeof renderedJsonlLineSchema>;
 
-export type JsonlLine = RenderedJsonlLine | GenericJsonlLine;
+export const jsonlLineSchema = v.variant("type", [
+	userLineSchema,
+	assistantLineSchema,
+	permissionModeLineSchema,
+	systemLineSchema,
+	attachmentLineSchema,
+	summaryLineSchema,
+	...skippedJsonlLineSchema.options,
+]);
+
+export type JsonlLine = v.InferOutput<typeof jsonlLineSchema>;
 
 // Helper type guards
 export function isUserLine(line: JsonlLine): line is UserLine {
