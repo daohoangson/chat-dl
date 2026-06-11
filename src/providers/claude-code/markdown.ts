@@ -852,7 +852,7 @@ function renderToolUseContent(
 			}
 			if (typedInput.prompt) {
 				parts.push(
-					`\`\`\`\n${maskText(ctx, typedInput.prompt.trim())}\n\`\`\``,
+					["```", maskText(ctx, typedInput.prompt.trim()), "```"].join("\n"),
 				);
 			}
 			// Render subagent inline if available
