@@ -113,6 +113,30 @@ export type GhostSnapshotPayload = v.InferOutput<
 	typeof ghostSnapshotPayloadSchema
 >;
 
+const toolSearchCallPayloadSchema = v.looseObject({
+	type: v.literal("tool_search_call"),
+	call_id: v.string(),
+	status: v.optional(v.string()),
+	execution: v.optional(v.string()),
+	arguments: v.optional(v.unknown()),
+});
+
+export type ToolSearchCallPayload = v.InferOutput<
+	typeof toolSearchCallPayloadSchema
+>;
+
+const toolSearchOutputPayloadSchema = v.looseObject({
+	type: v.literal("tool_search_output"),
+	call_id: v.string(),
+	status: v.optional(v.string()),
+	execution: v.optional(v.string()),
+	tools: v.optional(v.array(v.unknown())),
+});
+
+export type ToolSearchOutputPayload = v.InferOutput<
+	typeof toolSearchOutputPayloadSchema
+>;
+
 export const responseItemPayloadSchema = v.variant("type", [
 	messagePayloadSchema,
 	reasoningPayloadSchema,
@@ -122,6 +146,8 @@ export const responseItemPayloadSchema = v.variant("type", [
 	customToolCallOutputPayloadSchema,
 	webSearchCallPayloadSchema,
 	ghostSnapshotPayloadSchema,
+	toolSearchCallPayloadSchema,
+	toolSearchOutputPayloadSchema,
 ]);
 
 export type ResponseItemPayload = v.InferOutput<
@@ -150,11 +176,31 @@ const tokenCountInfoSchema = v.looseObject({
 	model_context_window: v.optional(v.number()),
 });
 
-const eventMsgPayloadSchema = v.looseObject({
-	type: v.string(),
+const tokenCountPayloadSchema = v.looseObject({
+	type: v.literal("token_count"),
 	info: v.optional(v.union([tokenCountInfoSchema, v.null()])),
 	rate_limits: v.optional(v.unknown()),
 });
+
+const eventMsgPayloadSchema = v.variant("type", [
+	tokenCountPayloadSchema,
+	v.looseObject({ type: v.literal("agent_message") }),
+	v.looseObject({ type: v.literal("agent_reasoning") }),
+	v.looseObject({ type: v.literal("context_compacted") }),
+	v.looseObject({ type: v.literal("entered_review_mode") }),
+	v.looseObject({ type: v.literal("error") }),
+	v.looseObject({ type: v.literal("exec_command_end") }),
+	v.looseObject({ type: v.literal("exited_review_mode") }),
+	v.looseObject({ type: v.literal("mcp_tool_call_end") }),
+	v.looseObject({ type: v.literal("patch_apply_end") }),
+	v.looseObject({ type: v.literal("task_complete") }),
+	v.looseObject({ type: v.literal("task_started") }),
+	v.looseObject({ type: v.literal("thread_name_updated") }),
+	v.looseObject({ type: v.literal("turn_aborted") }),
+	v.looseObject({ type: v.literal("user_message") }),
+	v.looseObject({ type: v.literal("view_image_tool_call") }),
+	v.looseObject({ type: v.literal("web_search_end") }),
+]);
 
 const eventMsgLineSchema = v.looseObject({
 	type: v.literal("event_msg"),

@@ -27,6 +27,8 @@ interface RenderContext {
 	lastSender: Sender;
 	lastModel: string | null;
 	currentModel: string | null;
+	lastUserTimestamp: string | null;
+	lastAssistantTimestamp: string | null;
 	toolOutputs: Map<string, ToolOutput>;
 	renderedOutputs: Set<string>;
 	usage: UsageStats;
@@ -58,6 +60,8 @@ export function renderFromLines(lines: CodexCliLine[]): string {
 		lastSender: null,
 		lastModel: null,
 		currentModel: null,
+		lastUserTimestamp: null,
+		lastAssistantTimestamp: null,
 		toolOutputs: new Map(),
 		renderedOutputs: new Set(),
 		usage: emptyUsageStats(),
@@ -92,52 +96,80 @@ export function renderFromLines(lines: CodexCliLine[]): string {
 		const payload = line.payload;
 
 		if (isMessagePayload(payload)) {
-			renderMessage(ctx, payload);
+			renderMessage(ctx, payload, line.timestamp);
 			continue;
 		}
 
 		if (isReasoningPayload(payload)) {
-			renderReasoning(ctx, payload);
+			renderReasoning(ctx, payload, line.timestamp);
 			continue;
 		}
 
 		if (isFunctionCallPayload(payload)) {
-			renderToolCall(ctx, payload.name, payload.arguments, payload.call_id);
+			renderToolCall(
+				ctx,
+				payload.name,
+				payload.arguments,
+				payload.call_id,
+				line.timestamp,
+			);
 			continue;
 		}
 
 		if (isCustomToolCallPayload(payload)) {
-			renderToolCall(ctx, payload.name, payload.input, payload.call_id);
+			renderToolCall(
+				ctx,
+				payload.name,
+				payload.input,
+				payload.call_id,
+				line.timestamp,
+			);
 			continue;
 		}
 
 		if (isFunctionCallOutputPayload(payload)) {
-			renderToolOutputIfNeeded(ctx, payload.call_id, payload.output);
+			renderToolOutputIfNeeded(
+				ctx,
+				payload.call_id,
+				payload.output,
+				line.timestamp,
+			);
 			continue;
 		}
 
 		if (isCustomToolCallOutputPayload(payload)) {
-			renderToolOutputIfNeeded(ctx, payload.call_id, payload.output);
+			renderToolOutputIfNeeded(
+				ctx,
+				payload.call_id,
+				payload.output,
+				line.timestamp,
+			);
 			continue;
 		}
 
 		if (isWebSearchCallPayload(payload)) {
-			renderWebSearchCall(ctx, payload);
+			renderWebSearchCall(ctx, payload, line.timestamp);
 		}
 	}
 
+	renderTurnRuntime(ctx);
 	renderUsageSummary(ctx);
 
 	return ctx.markdown.join("\n\n");
 }
 
-function renderMessage(ctx: RenderContext, payload: MessagePayload): void {
+function renderMessage(
+	ctx: RenderContext,
+	payload: MessagePayload,
+	timestamp?: string,
+): void {
 	const role = payload.role;
 	const contentText = extractMessageText(payload);
 	if (!contentText.trim()) return;
 
 	if (role === "assistant") {
 		ensureAssistantHeader(ctx);
+		noteAssistantTimestamp(ctx, timestamp);
 		ctx.markdown.push(contentText.trim());
 		return;
 	}
@@ -145,20 +177,28 @@ function renderMessage(ctx: RenderContext, payload: MessagePayload): void {
 	if (role === "user") {
 		const cleanContent = cleanUserContent(contentText);
 		if (!cleanContent.trim()) return;
-		ensureHumanHeader(ctx);
+		ensureHumanHeader(ctx, timestamp);
+		if (timestamp) {
+			ctx.lastUserTimestamp = timestamp;
+		}
 		ctx.markdown.push(cleanContent);
 	}
 }
 
-function renderReasoning(ctx: RenderContext, payload: ReasoningPayload): void {
+function renderReasoning(
+	ctx: RenderContext,
+	payload: ReasoningPayload,
+	timestamp?: string,
+): void {
 	const summaryText = payload.summary
 		?.map((item) => item.text)
-		.filter((text): text is string => Boolean(text && text.trim()))
+		.filter((text): text is string => Boolean(text?.trim()))
 		.join("\n\n");
 
 	if (!summaryText) return;
 
 	ensureAssistantHeader(ctx);
+	noteAssistantTimestamp(ctx, timestamp);
 	ctx.markdown.push("<details><summary>Reasoning</summary>");
 	ctx.markdown.push(summaryText.trim());
 	ctx.markdown.push("</details>");
@@ -169,8 +209,10 @@ function renderToolCall(
 	name: string,
 	rawArgs: string,
 	callId: string,
+	timestamp?: string,
 ): void {
 	ensureAssistantHeader(ctx);
+	noteAssistantTimestamp(ctx, timestamp);
 	ctx.markdown.push(`## Tool: ${name}`);
 
 	const formattedArgs = formatArguments(rawArgs);
@@ -191,9 +233,11 @@ function renderToolOutputIfNeeded(
 	ctx: RenderContext,
 	callId: string,
 	output: ToolOutput,
+	timestamp?: string,
 ): void {
 	if (ctx.renderedOutputs.has(callId)) return;
 	ensureAssistantHeader(ctx);
+	noteAssistantTimestamp(ctx, timestamp);
 	ctx.markdown.push("## Tool Output");
 	renderToolOutput(ctx, output);
 	ctx.renderedOutputs.add(callId);
@@ -222,8 +266,10 @@ function renderToolOutput(ctx: RenderContext, output: ToolOutput): void {
 function renderWebSearchCall(
 	ctx: RenderContext,
 	payload: WebSearchCallPayload,
+	timestamp?: string,
 ): void {
 	ensureAssistantHeader(ctx);
+	noteAssistantTimestamp(ctx, timestamp);
 	const statusSuffix = payload.status ? ` (${payload.status})` : "";
 	ctx.markdown.push(`## Web Search${statusSuffix}`);
 	if (payload.action) {
@@ -401,11 +447,69 @@ function getPricing(model: string | null): PricingInfo | null {
 	return null;
 }
 
-function ensureHumanHeader(ctx: RenderContext): void {
+function ensureHumanHeader(ctx: RenderContext, timestamp?: string): void {
 	if (ctx.lastSender !== "human") {
-		ctx.markdown.push("# Human");
+		renderTurnRuntime(ctx);
+		const formattedTimestamp = timestamp ? formatTimestamp(timestamp) : "";
+		const timestampStr = formattedTimestamp ? ` — ${formattedTimestamp}` : "";
+		ctx.markdown.push(`# Human${timestampStr}`);
 		ctx.lastSender = "human";
 	}
+}
+
+function formatTimestamp(timestamp: string): string {
+	const date = new Date(timestamp);
+	if (Number.isNaN(date.getTime())) return "";
+
+	return date.toLocaleString("en-US", {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+	});
+}
+
+function noteAssistantTimestamp(
+	ctx: RenderContext,
+	timestamp: string | undefined,
+): void {
+	if (timestamp) {
+		ctx.lastAssistantTimestamp = timestamp;
+	}
+}
+
+function renderTurnRuntime(ctx: RenderContext): void {
+	const runtimeStr = formatRuntime(
+		ctx.lastUserTimestamp,
+		ctx.lastAssistantTimestamp,
+	);
+	if (runtimeStr) {
+		ctx.markdown.push(`*Agent runtime${runtimeStr}*`);
+	}
+	ctx.lastAssistantTimestamp = null;
+}
+
+function formatRuntime(
+	userTimestamp: string | null,
+	assistantTimestamp: string | null | undefined,
+): string {
+	if (!userTimestamp || !assistantTimestamp) return "";
+	const start = new Date(userTimestamp).getTime();
+	const end = new Date(assistantTimestamp).getTime();
+	if (Number.isNaN(start) || Number.isNaN(end)) return "";
+	const durationMs = end - start;
+	if (durationMs < 0) return "";
+	if (durationMs < 1000) return "";
+	const seconds = Math.floor(durationMs / 1000);
+	if (seconds < 60) return ` — ${seconds}s`;
+	const minutes = Math.floor(seconds / 60);
+	const remainingSeconds = seconds % 60;
+	if (minutes < 60) return ` — ${minutes}m ${remainingSeconds}s`;
+	const hours = Math.floor(minutes / 60);
+	const remainingMinutes = minutes % 60;
+	return ` — ${hours}h ${remainingMinutes}m`;
 }
 
 function ensureAssistantHeader(ctx: RenderContext): void {
