@@ -23,7 +23,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
-		"@putout/minify": "^4.12.3",
+		"@putout/minify": "^6.0.0",
 		"@tsconfig/strictest": "^2.0.5",
 		"@types/yargs": "^17.0.33",
 		"acorn": "^8.14.1",
