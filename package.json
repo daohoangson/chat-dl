@@ -22,7 +22,7 @@
 		"public": "npm publish --access public"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
+		"@biomejs/biome": "^2.0.0",
 		"@putout/minify": "^4.12.3",
 		"@tsconfig/strictest": "^2.0.5",
 		"@types/yargs": "^17.0.33",
