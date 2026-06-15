@@ -191,11 +191,15 @@ export type SystemLine = v.InferOutput<typeof systemLineSchema>;
 
 const attachmentPayloadFields = {
 	addedNames: v.optional(v.array(v.string())),
+	addedTypes: v.optional(v.array(v.string())),
+	addedLines: v.optional(v.array(v.string())),
 	removedNames: v.optional(v.array(v.string())),
+	removedTypes: v.optional(v.array(v.string())),
 	content: v.optional(v.unknown()),
 	itemCount: v.optional(v.number()),
 	skillCount: v.optional(v.number()),
 	isInitial: v.optional(v.boolean()),
+	showConcurrencyNote: v.optional(v.boolean()),
 	filename: v.optional(v.string()),
 	snippet: v.optional(v.string()),
 	newDate: v.optional(v.string()),
@@ -213,6 +217,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("async_hook_response"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("agent_listing_delta"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
