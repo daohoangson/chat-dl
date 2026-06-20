@@ -27,11 +27,12 @@ npx chat-dl --output chat.md <url>
 
 ### Commands
 
-The CLI supports three main commands:
+The CLI supports four main commands:
 
-- `url2md`: Convert chat URL directly to markdown (default)
-- `url2json`: Download chat data as JSON
+- `url2md`: Convert a chat URL or local chat file directly to markdown (default)
+- `url2json`: Download chat data from a URL or parse a local chat file as JSON
 - `json2md`: Convert JSON to markdown
+- `dir2md`: Recursively convert supported local chat files in a directory to markdown
 
 ### Examples
 
@@ -42,48 +43,27 @@ npx chat-dl https://chatgpt.com/share/feacac46-4201-48c5-9fb6-e3109475c8c8
 # Two-step process with intermediate JSON
 npx chat-dl url2json --output chat.json https://x.com/i/grok/share/ntS9ACoPKa2XcPwFnFYT2uUiL
 cat chat.json | npx chat-dl json2md --output chat.md
+
+# Convert local Claude Code JSONL transcripts
+npx chat-dl dir2md ~/.claude/projects --output ./claude-transcripts
 ```
 
-### ChatGPT enterprise shared links
+### Protected shared links
 
-These links are not publicly accessible and require authentication. The tool provides two methods to handle these links:
+Some shared links are not publicly accessible and require authentication in
+your browser. Public links use the default Puppeteer browser path. For protected
+links, use your existing Chrome credentials by enabling Chrome's remote debugging
+UI and running the tool while Chrome is still open.
 
-#### Method 1: Debug Chrome with Remote Debugging
+For the Chrome DevTools MCP-style auto-connect flow in Chrome 144+:
 
-1. Start Chrome with remote debugging enabled:
+1. Open `chrome://inspect/#remote-debugging`
+2. Allow incoming debugging connections
+3. Run the tool with `--existing-chrome`:
 
 ```bash
-# On macOS
-/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
-
-# On Windows
-"C:\Program Files\Google Chrome\chrome.exe" --remote-debugging-port=9222
-
-# On Linux
-google-chrome --remote-debugging-port=9222
+npx chat-dl --existing-chrome <protected-share-url>
 ```
-
-2. Set the environment variable to connect to the debugger:
-
-```bash
-export PUPPETEER_BROWSER_WS_ENDPOINT=ws://127.0.0.1:9222/devtools/browser
-```
-
-3. Run the tool normally:
-
-```bash
-npx chat-dl <enterprise-share-url>
-```
-
-#### Method 2: Browser Console
-
-If you can't run Chrome in debug mode, you can:
-
-1. Open the shared link in your browser
-2. Open the browser's Developer Tools (F12 or Cmd+Option+I)
-3. Paste the extraction code in the Console tab (the tool will show you the exact code)
-4. Copy the output
-5. Paste it back to the tool when prompted
 
 ## Development
 

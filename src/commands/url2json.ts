@@ -7,6 +7,7 @@ import {
 import type { CommandModule } from "yargs";
 
 interface Url2jsonArgs {
+	existingChrome: boolean;
 	output: string;
 	url: string;
 }
@@ -14,7 +15,9 @@ interface Url2jsonArgs {
 async function handler(args: Url2jsonArgs) {
 	const json = isLocalPath(args.url)
 		? parseJsonFromPath(args.url)
-		: await downloadJsonFromUrl(args.url);
+		: await downloadJsonFromUrl(args.url, {
+				existingChrome: args.existingChrome,
+			});
 	const outputPath = args.output === "-" ? process.stdout.fd : args.output;
 	writeFileSync(outputPath, JSON.stringify(json));
 }
@@ -34,6 +37,13 @@ export const url2json: CommandModule<unknown, Url2jsonArgs> = {
 				description: 'path to JSON or "-" for stdout',
 				default: "-",
 				alias: ["o"],
+			})
+			.option("existingChrome", {
+				type: "boolean",
+				description:
+					"Use the active Chrome DevTools session for authenticated shared links",
+				default: false,
+				alias: ["existing-chrome"],
 			});
 	},
 	handler,

@@ -7,6 +7,7 @@ import {
 import type { CommandModule } from "yargs";
 
 interface Url2mdArgs {
+	existingChrome: boolean;
 	output: string;
 	url: string;
 }
@@ -14,7 +15,9 @@ interface Url2mdArgs {
 async function handler(args: Url2mdArgs) {
 	const markdown = isLocalPath(args.url)
 		? renderMarkdownFromPath(args.url)
-		: await renderMarkdownFromUrl(args.url);
+		: await renderMarkdownFromUrl(args.url, {
+				existingChrome: args.existingChrome,
+			});
 
 	if (args.output === "-") {
 		process.stdout.write(markdown);
@@ -39,6 +42,13 @@ export const url2md: CommandModule<unknown, Url2mdArgs> = {
 				description: 'path to markdown or "-" for stdout',
 				default: "-",
 				alias: ["o"],
+			})
+			.option("existingChrome", {
+				type: "boolean",
+				description:
+					"Use the active Chrome DevTools session for authenticated shared links",
+				default: false,
+				alias: ["existing-chrome"],
 			});
 	},
 	handler,

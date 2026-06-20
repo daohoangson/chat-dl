@@ -60,6 +60,11 @@ function renderToolUse(ctx: RenderContext, content: ContentToolUse): boolean {
 			return true;
 		}
 		default: {
+			if (input == null) {
+				ctx.markdown.push(`## Tool use: ${name}`);
+				return true;
+			}
+
 			const str =
 				typeof input === "string" ? input : JSON.stringify(input, null, 2);
 			ctx.markdown.push(`## Tool use: ${name}`);
@@ -125,18 +130,39 @@ function renderToolResult(
 	ctx: RenderContext,
 	content: ContentToolResult,
 ): boolean {
-	const { name } = content;
+	const { content: result, name } = content;
 	if (name === "artifacts") {
 		return false;
 	}
 
-	const { content: result } = v.parse(repl.toolResultSchema, content);
 	for (const item of result) {
-		ctx.markdown.push("<details><summary>Tool result</summary>");
-		ctx.markdown.push(
-			formatCodeBlock(JSON.stringify(item.text, null, 2), "json"),
-		);
+		ctx.markdown.push(`<details><summary>Tool result: ${name}</summary>`);
+		ctx.markdown.push(formatToolResultItem(item));
 		ctx.markdown.push("</details>\n\n");
 	}
 	return true;
+}
+
+function formatToolResultItem(item: unknown): string {
+	if (
+		typeof item === "object" &&
+		item !== null &&
+		"text" in item &&
+		typeof item.text === "string"
+	) {
+		try {
+			return formatCodeBlock(
+				JSON.stringify(JSON.parse(item.text), null, 2),
+				"json",
+			);
+		} catch {
+			return formatCodeBlock(item.text);
+		}
+	}
+
+	const json = JSON.stringify(item, null, 2);
+	return formatCodeBlock(
+		typeof json === "string" ? json : String(item),
+		"json",
+	);
 }

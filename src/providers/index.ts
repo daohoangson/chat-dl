@@ -13,7 +13,14 @@ import * as claudeCode from "./claude-code";
 import * as codexCli from "./codex-cli";
 import * as grok from "./grok";
 
-export async function downloadJsonFromUrl(url: string) {
+export interface DownloadOptions {
+	existingChrome?: boolean;
+}
+
+export async function downloadJsonFromUrl(
+	url: string,
+	options: DownloadOptions = {},
+) {
 	const provider = getProviderByUrl(url);
 	let cacheValue: CacheValue<unknown>;
 	switch (provider) {
@@ -21,7 +28,7 @@ export async function downloadJsonFromUrl(url: string) {
 			cacheValue = await chatgpt.downloadJsonFromUrl(url);
 			break;
 		case "claude":
-			cacheValue = await claude.downloadJsonFromUrl(url);
+			cacheValue = await claude.downloadJsonFromUrl(url, options);
 			break;
 		case "grok":
 			cacheValue = await grok.downloadJsonFromUrl(url);
@@ -79,13 +86,16 @@ export function renderMarkdownFromJson(input: unknown) {
 	}
 }
 
-export async function renderMarkdownFromUrl(url: string) {
+export async function renderMarkdownFromUrl(
+	url: string,
+	options: DownloadOptions = {},
+) {
 	const provider = getProviderByUrl(url);
 	switch (provider) {
 		case "chatgpt":
 			return await chatgpt.renderMarkdownFromUrl(url);
 		case "claude":
-			return await claude.renderMarkdownFromUrl(url);
+			return await claude.renderMarkdownFromUrl(url, options);
 		case "grok":
 			return await grok.renderMarkdownFromUrl(url);
 	}
