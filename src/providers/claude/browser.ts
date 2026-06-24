@@ -1,7 +1,29 @@
 import { type CdpPage, newBrowserPage, newCdpPage } from "@/common";
+import * as v from "valibot";
 
 export interface DownloadFromUrlOptions {
 	existingChrome?: boolean;
+}
+
+const errorResponseSchema = v.object({
+	type: v.literal("error"),
+	error: v.object({
+		type: v.string(),
+		message: v.string(),
+	}),
+});
+
+function assertNotErrorResponse(response: unknown): void {
+	const result = v.safeParse(errorResponseSchema, response);
+	if (!result.success) return;
+
+	const { type, message } = result.output.error;
+	const hint =
+		type === "permission_error"
+			? " The shared chat requires authentication; rerun with --existing-chrome against a Chrome session signed in to claude.ai."
+			: "";
+
+	throw new Error(`Claude API returned a ${type}: ${message}.${hint}`);
 }
 
 function isSnapshotUrl(url: string) {
@@ -117,9 +139,12 @@ export async function downloadFromUrl(
 	url: string,
 	options: DownloadFromUrlOptions = {},
 ): Promise<unknown> {
-	if (options.existingChrome === true) {
-		return await downloadFromUrlWithExistingChrome(url);
-	}
+	const response =
+		options.existingChrome === true
+			? await downloadFromUrlWithExistingChrome(url)
+			: await downloadFromUrlWithPuppeteer(url);
 
-	return await downloadFromUrlWithPuppeteer(url);
+	assertNotErrorResponse(response);
+
+	return response;
 }
