@@ -104,6 +104,8 @@ const userContentSchema = v.union([
 			textContentSchema,
 			// Document attachments (PDF, etc.)
 			documentContentSchema,
+			// Pasted/attached images
+			imageContentSchema,
 		]),
 	),
 ]);
@@ -307,14 +309,48 @@ const summaryLineSchema = v.looseObject({
 
 export type SummaryLine = v.InferOutput<typeof summaryLineSchema>;
 
+// AI-generated session title
+const aiTitleLineSchema = v.looseObject({
+	type: v.literal("ai-title"),
+	aiTitle: v.optional(v.string()),
+});
+
+export type AiTitleLine = v.InferOutput<typeof aiTitleLineSchema>;
+
+// User-authored session title
+const customTitleLineSchema = v.looseObject({
+	type: v.literal("custom-title"),
+	customTitle: v.optional(v.string()),
+});
+
+export type CustomTitleLine = v.InferOutput<typeof customTitleLineSchema>;
+
+// Pull request created during the session
+const prLinkLineSchema = v.looseObject({
+	type: v.literal("pr-link"),
+	prUrl: v.optional(v.string()),
+	prNumber: v.optional(v.number()),
+	prRepository: v.optional(v.string()),
+	timestamp: v.optional(v.string()),
+});
+
+export type PrLinkLine = v.InferOutput<typeof prLinkLineSchema>;
+
+// Link between a local file and a claude.ai artifact frame
+const frameLinkLineSchema = v.looseObject({
+	type: v.literal("frame-link"),
+	path: v.optional(v.string()),
+	frameUrl: v.optional(v.string()),
+	timestamp: v.optional(v.string()),
+});
+
+export type FrameLinkLine = v.InferOutput<typeof frameLinkLineSchema>;
+
 const skippedJsonlLineSchema = v.variant("type", [
-	v.looseObject({ type: v.literal("ai-title") }),
 	v.looseObject({ type: v.literal("bridge-session") }),
-	v.looseObject({ type: v.literal("custom-title") }),
 	v.looseObject({ type: v.literal("file-history-snapshot") }),
 	v.looseObject({ type: v.literal("last-prompt") }),
 	v.looseObject({ type: v.literal("mode") }),
-	v.looseObject({ type: v.literal("pr-link") }),
 	v.looseObject({ type: v.literal("progress") }),
 	v.looseObject({ type: v.literal("queue-operation") }),
 	v.looseObject({ type: v.literal("result") }),
@@ -328,6 +364,10 @@ export const jsonlLineSchema = v.variant("type", [
 	systemLineSchema,
 	attachmentLineSchema,
 	summaryLineSchema,
+	aiTitleLineSchema,
+	customTitleLineSchema,
+	prLinkLineSchema,
+	frameLinkLineSchema,
 	...skippedJsonlLineSchema.options,
 ]);
 
@@ -352,4 +392,20 @@ export function isSystemLine(line: JsonlLine): line is SystemLine {
 
 export function isAttachmentLine(line: JsonlLine): line is AttachmentLine {
 	return line.type === "attachment";
+}
+
+export function isAiTitleLine(line: JsonlLine): line is AiTitleLine {
+	return line.type === "ai-title";
+}
+
+export function isCustomTitleLine(line: JsonlLine): line is CustomTitleLine {
+	return line.type === "custom-title";
+}
+
+export function isPrLinkLine(line: JsonlLine): line is PrLinkLine {
+	return line.type === "pr-link";
+}
+
+export function isFrameLinkLine(line: JsonlLine): line is FrameLinkLine {
+	return line.type === "frame-link";
 }

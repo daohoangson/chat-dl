@@ -6,7 +6,9 @@ import type {
 	AssistantLine,
 	AttachmentLine,
 	FallbackContent,
+	FrameLinkLine,
 	JsonlLine,
+	PrLinkLine,
 	SummaryLine,
 	SystemLine,
 	TextContent,
@@ -17,8 +19,12 @@ import type {
 	UserLine,
 } from "./models";
 import {
+	isAiTitleLine,
 	isAssistantLine,
 	isAttachmentLine,
+	isCustomTitleLine,
+	isFrameLinkLine,
+	isPrLinkLine,
 	isSummaryLine,
 	isSystemLine,
 	isUserLine,
@@ -54,6 +60,7 @@ interface RenderContext {
 	homeDir: string;
 	username: string;
 	subagentsDir: string | null;
+	seenLinkUrls: Set<string>;
 }
 
 export interface RenderOptions {
@@ -91,6 +98,7 @@ export function renderFromLines(
 		homeDir: homedir(),
 		username: userInfo().username,
 		subagentsDir: options?.subagentsDir ?? null,
+		seenLinkUrls: new Set(),
 	};
 
 	// First pass: collect all tool results and agentIds from user messages
@@ -99,6 +107,9 @@ export function renderFromLines(
 			collectToolResults(ctx, line);
 		}
 	}
+
+	// Hoist the session title to the top (prefer user-authored over AI-generated)
+	renderTitle(ctx, lines);
 
 	// Second pass: render messages
 	for (const line of lines) {
@@ -112,9 +123,14 @@ export function renderFromLines(
 			renderAssistantLine(ctx, line);
 		} else if (isSummaryLine(line)) {
 			renderSummaryLine(ctx, line);
+		} else if (isPrLinkLine(line)) {
+			renderPrLinkLine(ctx, line);
+		} else if (isFrameLinkLine(line)) {
+			renderFrameLinkLine(ctx, line);
 		}
 		// Other metadata/event types are skipped (queue-operation,
-		// file-history-snapshot, progress, last-prompt)
+		// file-history-snapshot, progress, last-prompt, mode, started, result,
+		// bridge-session). Titles are hoisted above before this pass.
 	}
 
 	// Emit runtime for the last agent turn
@@ -270,6 +286,48 @@ function renderTurnRuntime(ctx: RenderContext): void {
 	}
 	// Reset so we don't double-emit
 	ctx.lastAssistantTimestamp = null;
+}
+
+function renderTitle(ctx: RenderContext, lines: JsonlLine[]): void {
+	let aiTitle: string | undefined;
+	let customTitle: string | undefined;
+
+	for (const line of lines) {
+		if (isCustomTitleLine(line) && line.customTitle?.trim()) {
+			customTitle = line.customTitle.trim();
+		} else if (isAiTitleLine(line) && line.aiTitle?.trim()) {
+			aiTitle = line.aiTitle.trim();
+		}
+	}
+
+	const title = customTitle ?? aiTitle;
+	if (title) {
+		ctx.markdown.push(`# ${title}`);
+	}
+}
+
+function renderPrLinkLine(ctx: RenderContext, line: PrLinkLine): void {
+	const url = line.prUrl?.trim();
+	if (!url || ctx.seenLinkUrls.has(url)) return;
+	ctx.seenLinkUrls.add(url);
+
+	const label =
+		line.prRepository && line.prNumber
+			? `${line.prRepository}#${line.prNumber}`
+			: line.prNumber
+				? `#${line.prNumber}`
+				: url;
+	pushEventBlock(ctx, `> **PR created:** [${label}](${url})`);
+}
+
+function renderFrameLinkLine(ctx: RenderContext, line: FrameLinkLine): void {
+	const url = line.frameUrl?.trim();
+	if (!url || ctx.seenLinkUrls.has(url)) return;
+	ctx.seenLinkUrls.add(url);
+
+	const path = line.path?.trim();
+	const name = path ? (path.split("/").pop() ?? path) : "artifact";
+	pushEventBlock(ctx, `> **Artifact:** [${name}](${url})`);
 }
 
 function renderSummaryLine(ctx: RenderContext, line: SummaryLine): void {
