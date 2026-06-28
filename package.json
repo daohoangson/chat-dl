@@ -40,7 +40,6 @@
 		"chrome-remote-interface": "^0.34.0",
 		"file-system-cache": "^2.4.7",
 		"puppeteer": "^24.4.0",
-		"putout": "^39.0.11",
 		"uuid": "^11.1.0",
 		"valibot": "^1.0.0",
 		"yargs": "^17.7.2"
