@@ -170,6 +170,7 @@ const systemLineSchema = v.looseObject({
 			v.literal("api_error"),
 			v.literal("away_summary"),
 			v.literal("bridge_status"),
+			v.literal("compact_boundary"),
 			v.literal("informational"),
 			v.literal("local_command"),
 			v.literal("model_refusal_fallback"),
@@ -180,6 +181,7 @@ const systemLineSchema = v.looseObject({
 	),
 	content: v.optional(v.string()),
 	url: v.optional(v.string()),
+	compactMetadata: v.optional(v.looseObject({})),
 	durationMs: v.optional(v.number()),
 	hookCount: v.optional(v.number()),
 	hookErrors: v.optional(v.array(v.unknown())),
@@ -203,6 +205,7 @@ const attachmentPayloadFields = {
 	isInitial: v.optional(v.boolean()),
 	showConcurrencyNote: v.optional(v.boolean()),
 	filename: v.optional(v.string()),
+	displayPath: v.optional(v.string()),
 	snippet: v.optional(v.string()),
 	newDate: v.optional(v.string()),
 	stdout: v.optional(v.string()),
@@ -210,6 +213,14 @@ const attachmentPayloadFields = {
 	exitCode: v.optional(v.number()),
 	hookName: v.optional(v.string()),
 	hookEvent: v.optional(v.string()),
+	skills: v.optional(
+		v.array(
+			v.looseObject({
+				name: v.optional(v.string()),
+				path: v.optional(v.string()),
+			}),
+		),
+	),
 };
 
 const attachmentPayloadSchema = v.variant("type", [
@@ -227,6 +238,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("command_permissions"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("compact_file_reference"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
@@ -259,6 +274,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("hook_success"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("invoked_skills"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({

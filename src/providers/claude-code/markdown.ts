@@ -390,6 +390,11 @@ function renderSystemLine(ctx: RenderContext, line: SystemLine): void {
 			}
 			return;
 		}
+		case "compact_boundary": {
+			const content = line.content?.trim() || "Conversation compacted";
+			pushEventBlock(ctx, `> **${content}**`);
+			return;
+		}
 		case "turn_duration":
 			return;
 		default: {
@@ -509,6 +514,18 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 				);
 			}
 			pushEventBlock(ctx, ...blocks);
+			return;
+		}
+		case "invoked_skills": {
+			const names = (attachment.skills ?? [])
+				.map((skill) => skill.name?.trim())
+				.filter((name): name is string => Boolean(name));
+			if (names.length > 0) {
+				pushEventBlock(
+					ctx,
+					`> **Skill invoked:** ${names.map((name) => `\`${name}\``).join(", ")}`,
+				);
+			}
 			return;
 		}
 		case "date_change": {
