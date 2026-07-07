@@ -213,6 +213,12 @@ const attachmentPayloadFields = {
 	exitCode: v.optional(v.number()),
 	hookName: v.optional(v.string()),
 	hookEvent: v.optional(v.string()),
+	command: v.optional(v.string()),
+	durationMs: v.optional(v.number()),
+	timedOut: v.optional(v.boolean()),
+	timeoutMs: v.optional(v.number()),
+	pageCount: v.optional(v.number()),
+	fileSize: v.optional(v.number()),
 	skills: v.optional(
 		v.array(
 			v.looseObject({
@@ -269,6 +275,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("hook_cancelled"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("hook_non_blocking_error"),
 		...attachmentPayloadFields,
 	}),
@@ -286,6 +296,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("nested_memory"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("pdf_reference"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({

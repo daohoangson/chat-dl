@@ -528,6 +528,34 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 			}
 			return;
 		}
+		case "pdf_reference": {
+			if (!attachment.filename) {
+				return;
+			}
+			const details: string[] = [];
+			if (attachment.pageCount) {
+				details.push(
+					`${attachment.pageCount} page${attachment.pageCount === 1 ? "" : "s"}`,
+				);
+			}
+			const suffix = details.length > 0 ? ` (${details.join(", ")})` : "";
+			pushEventBlock(
+				ctx,
+				`> **PDF:** \`${maskPath(ctx, attachment.filename)}\`${suffix}`,
+			);
+			return;
+		}
+		case "hook_cancelled": {
+			const label = attachment.hookName || attachment.hookEvent;
+			const reason = attachment.timedOut
+				? `timed out${attachment.timeoutMs ? ` after ${attachment.timeoutMs}ms` : ""}`
+				: "cancelled";
+			pushEventBlock(
+				ctx,
+				`> **Hook cancelled${label ? ` (${label})` : ""}:** ${reason}`,
+			);
+			return;
+		}
 		case "date_change": {
 			if (attachment.newDate?.trim()) {
 				pushEventBlock(ctx, `> **Date changed:** ${attachment.newDate}`);
