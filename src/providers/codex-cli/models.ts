@@ -195,6 +195,7 @@ const eventMsgPayloadSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("patch_apply_end") }),
 	v.looseObject({ type: v.literal("task_complete") }),
 	v.looseObject({ type: v.literal("task_started") }),
+	v.looseObject({ type: v.literal("thread_settings_applied") }),
 	v.looseObject({ type: v.literal("thread_name_updated") }),
 	v.looseObject({ type: v.literal("thread_rolled_back") }),
 	v.looseObject({ type: v.literal("turn_aborted") }),
@@ -245,12 +246,24 @@ const compactedLineSchema = v.looseObject({
 
 export type CompactedLine = v.InferOutput<typeof compactedLineSchema>;
 
+const worldStateLineSchema = v.looseObject({
+	type: v.literal("world_state"),
+	timestamp: v.optional(v.string()),
+	payload: v.looseObject({
+		full: v.optional(v.boolean()),
+		state: v.optional(v.unknown()),
+	}),
+});
+
+export type WorldStateLine = v.InferOutput<typeof worldStateLineSchema>;
+
 export const codexCliLineSchema = v.variant("type", [
 	responseItemLineSchema,
 	eventMsgLineSchema,
 	turnContextLineSchema,
 	sessionMetaLineSchema,
 	compactedLineSchema,
+	worldStateLineSchema,
 ]);
 
 export type CodexCliLine = v.InferOutput<typeof codexCliLineSchema>;
