@@ -165,6 +165,7 @@ export type ResponseItemLine = v.InferOutput<typeof responseItemLineSchema>;
 const tokenUsageSchema = v.looseObject({
 	input_tokens: v.optional(v.number()),
 	cached_input_tokens: v.optional(v.number()),
+	cache_write_tokens: v.optional(v.number()),
 	output_tokens: v.optional(v.number()),
 	reasoning_output_tokens: v.optional(v.number()),
 	total_tokens: v.optional(v.number()),

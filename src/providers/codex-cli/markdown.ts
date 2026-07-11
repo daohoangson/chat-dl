@@ -45,6 +45,7 @@ interface UsageStats {
 	inputTokens: number;
 	outputTokens: number;
 	cachedInputTokens: number;
+	cacheWriteTokens: number;
 	reasoningTokens: number;
 	totalTokens: number;
 }
@@ -53,7 +54,11 @@ interface PricingInfo {
 	modelLabel: string;
 	input: number;
 	cacheRead: number;
+	cacheWrite?: number;
 	output: number;
+	longContextThreshold?: number;
+	longContextInputMultiplier?: number;
+	longContextOutputMultiplier?: number;
 	note?: string;
 }
 
@@ -356,6 +361,7 @@ function emptyUsageStats(): UsageStats {
 		inputTokens: 0,
 		outputTokens: 0,
 		cachedInputTokens: 0,
+		cacheWriteTokens: 0,
 		reasoningTokens: 0,
 		totalTokens: 0,
 	};
@@ -384,7 +390,13 @@ function collectUsage(lineGroups: CodexCliLine[][]): UsageAggregation {
 			continue;
 		}
 		modelLabels.add(pricing.modelLabel);
-		cost += calculateUsageCost(session.stats, pricing);
+		const billableUsages =
+			session.requestUsages.length > 0
+				? session.requestUsages
+				: [session.stats];
+		for (const usage of billableUsages) {
+			cost += calculateUsageCost(usage, pricing);
+		}
 	}
 
 	return {
@@ -397,9 +409,13 @@ function collectUsage(lineGroups: CodexCliLine[][]): UsageAggregation {
 function collectSessionUsage(lines: CodexCliLine[]): {
 	stats: UsageStats;
 	model: string | null;
+	requestUsages: UsageStats[];
 } {
 	const usageFromLastEvents = emptyUsageStats();
 	let usageFromTotals: UsageStats | null = null;
+	let previousTotal = emptyUsageStats();
+	const seenTotals = new Set<string>();
+	const requestUsages: UsageStats[] = [];
 	let model: string | null = null;
 
 	for (const line of lines) {
@@ -415,7 +431,14 @@ function collectSessionUsage(lines: CodexCliLine[]): {
 		const totalUsage = (info as { total_token_usage?: TokenUsage })
 			.total_token_usage;
 		if (totalUsage) {
-			usageFromTotals = toUsageStats(totalUsage);
+			const currentTotal = toUsageStats(totalUsage);
+			usageFromTotals = currentTotal;
+			const signature = usageSignature(currentTotal);
+			if (!seenTotals.has(signature)) {
+				seenTotals.add(signature);
+				requestUsages.push(subtractUsageStats(currentTotal, previousTotal));
+				previousTotal = currentTotal;
+			}
 			continue;
 		}
 
@@ -423,12 +446,48 @@ function collectSessionUsage(lines: CodexCliLine[]): {
 			.last_token_usage;
 		if (lastUsage) {
 			addUsage(usageFromLastEvents, lastUsage);
+			requestUsages.push(toUsageStats(lastUsage));
 		}
 	}
 
 	return {
 		stats: usageFromTotals ?? usageFromLastEvents,
 		model,
+		requestUsages,
+	};
+}
+
+function usageSignature(usage: UsageStats): string {
+	return [
+		usage.inputTokens,
+		usage.outputTokens,
+		usage.cachedInputTokens,
+		usage.cacheWriteTokens,
+		usage.reasoningTokens,
+		usage.totalTokens,
+	].join(":");
+}
+
+function subtractUsageStats(
+	current: UsageStats,
+	previous: UsageStats,
+): UsageStats {
+	return {
+		inputTokens: Math.max(current.inputTokens - previous.inputTokens, 0),
+		outputTokens: Math.max(current.outputTokens - previous.outputTokens, 0),
+		cachedInputTokens: Math.max(
+			current.cachedInputTokens - previous.cachedInputTokens,
+			0,
+		),
+		cacheWriteTokens: Math.max(
+			current.cacheWriteTokens - previous.cacheWriteTokens,
+			0,
+		),
+		reasoningTokens: Math.max(
+			current.reasoningTokens - previous.reasoningTokens,
+			0,
+		),
+		totalTokens: Math.max(current.totalTokens - previous.totalTokens, 0),
 	};
 }
 
@@ -437,6 +496,7 @@ function toUsageStats(usage: TokenUsage): UsageStats {
 		inputTokens: usage.input_tokens ?? 0,
 		outputTokens: usage.output_tokens ?? 0,
 		cachedInputTokens: usage.cached_input_tokens ?? 0,
+		cacheWriteTokens: usage.cache_write_tokens ?? 0,
 		reasoningTokens: usage.reasoning_output_tokens ?? 0,
 		totalTokens: usage.total_tokens ?? 0,
 	};
@@ -446,6 +506,7 @@ function addUsage(target: UsageStats, usage: TokenUsage): void {
 	target.inputTokens += usage.input_tokens ?? 0;
 	target.outputTokens += usage.output_tokens ?? 0;
 	target.cachedInputTokens += usage.cached_input_tokens ?? 0;
+	target.cacheWriteTokens += usage.cache_write_tokens ?? 0;
 	target.reasoningTokens += usage.reasoning_output_tokens ?? 0;
 	target.totalTokens += usage.total_tokens ?? 0;
 }
@@ -454,6 +515,7 @@ function addUsageStats(target: UsageStats, usage: UsageStats): void {
 	target.inputTokens += usage.inputTokens;
 	target.outputTokens += usage.outputTokens;
 	target.cachedInputTokens += usage.cachedInputTokens;
+	target.cacheWriteTokens += usage.cacheWriteTokens;
 	target.reasoningTokens += usage.reasoningTokens;
 	target.totalTokens += usage.totalTokens;
 }
@@ -463,6 +525,7 @@ function hasUsage(usage: UsageStats): boolean {
 		usage.inputTokens > 0 ||
 		usage.outputTokens > 0 ||
 		usage.cachedInputTokens > 0 ||
+		usage.cacheWriteTokens > 0 ||
 		usage.reasoningTokens > 0 ||
 		usage.totalTokens > 0
 	);
@@ -470,13 +533,24 @@ function hasUsage(usage: UsageStats): boolean {
 
 function calculateUsageCost(usage: UsageStats, pricing: PricingInfo): number {
 	const uncachedInputTokens = Math.max(
-		usage.inputTokens - usage.cachedInputTokens,
+		usage.inputTokens - usage.cachedInputTokens - usage.cacheWriteTokens,
 		0,
 	);
+	const isLongContext =
+		pricing.longContextThreshold !== undefined &&
+		usage.inputTokens > pricing.longContextThreshold;
+	const inputMultiplier = isLongContext
+		? (pricing.longContextInputMultiplier ?? 1)
+		: 1;
+	const outputMultiplier = isLongContext
+		? (pricing.longContextOutputMultiplier ?? 1)
+		: 1;
 	return (
-		(uncachedInputTokens * pricing.input +
+		((uncachedInputTokens * pricing.input +
 			usage.cachedInputTokens * pricing.cacheRead +
-			usage.outputTokens * pricing.output) /
+			usage.cacheWriteTokens * (pricing.cacheWrite ?? pricing.input)) *
+			inputMultiplier +
+			usage.outputTokens * pricing.output * outputMultiplier) /
 		1_000_000
 	);
 }
@@ -497,6 +571,12 @@ function renderUsageSummary(ctx: RenderContext): void {
 	if (usage.cachedInputTokens > 0) {
 		lines.push(
 			`- **Cached input tokens:** ${formatNumber(usage.cachedInputTokens)}`,
+		);
+	}
+
+	if (usage.cacheWriteTokens > 0) {
+		lines.push(
+			`- **Cache write tokens:** ${formatNumber(usage.cacheWriteTokens)}`,
 		);
 	}
 
@@ -542,6 +622,44 @@ function formatNumber(value: number): string {
 function getPricing(model: string | null): PricingInfo | null {
 	if (!model) return null;
 	const normalized = model.toLowerCase();
+	const gpt56LongContext = {
+		longContextThreshold: 272_000,
+		longContextInputMultiplier: 2,
+		longContextOutputMultiplier: 1.5,
+	};
+
+	if (normalized.startsWith("gpt-5.6-terra")) {
+		return {
+			modelLabel: "gpt-5.6-terra",
+			input: 2.5,
+			cacheRead: 0.25,
+			cacheWrite: 3.125,
+			output: 15,
+			...gpt56LongContext,
+		};
+	}
+
+	if (normalized.startsWith("gpt-5.6-luna")) {
+		return {
+			modelLabel: "gpt-5.6-luna",
+			input: 1,
+			cacheRead: 0.1,
+			cacheWrite: 1.25,
+			output: 6,
+			...gpt56LongContext,
+		};
+	}
+
+	if (normalized === "gpt-5.6" || normalized.startsWith("gpt-5.6-sol")) {
+		return {
+			modelLabel: "gpt-5.6-sol",
+			input: 5,
+			cacheRead: 0.5,
+			cacheWrite: 6.25,
+			output: 30,
+			...gpt56LongContext,
+		};
+	}
 
 	if (normalized.startsWith("gpt-5.3-codex")) {
 		return {
