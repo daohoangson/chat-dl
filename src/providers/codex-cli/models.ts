@@ -137,6 +137,21 @@ export type ToolSearchOutputPayload = v.InferOutput<
 	typeof toolSearchOutputPayloadSchema
 >;
 
+const agentMessagePayloadSchema = v.looseObject({
+	type: v.literal("agent_message"),
+	author: v.string(),
+	recipient: v.string(),
+	content: v.array(
+		v.variant("type", [
+			inputTextContentSchema,
+			v.looseObject({
+				type: v.literal("encrypted_content"),
+				encrypted_content: v.string(),
+			}),
+		]),
+	),
+});
+
 export const responseItemPayloadSchema = v.variant("type", [
 	messagePayloadSchema,
 	reasoningPayloadSchema,
@@ -148,6 +163,7 @@ export const responseItemPayloadSchema = v.variant("type", [
 	ghostSnapshotPayloadSchema,
 	toolSearchCallPayloadSchema,
 	toolSearchOutputPayloadSchema,
+	agentMessagePayloadSchema,
 ]);
 
 export type ResponseItemPayload = v.InferOutput<
@@ -183,8 +199,18 @@ const tokenCountPayloadSchema = v.looseObject({
 	rate_limits: v.optional(v.unknown()),
 });
 
+const subAgentActivityPayloadSchema = v.looseObject({
+	type: v.literal("sub_agent_activity"),
+	event_id: v.string(),
+	occurred_at_ms: v.number(),
+	agent_thread_id: v.string(),
+	agent_path: v.string(),
+	kind: v.string(),
+});
+
 const eventMsgPayloadSchema = v.variant("type", [
 	tokenCountPayloadSchema,
+	subAgentActivityPayloadSchema,
 	v.looseObject({ type: v.literal("agent_message") }),
 	v.looseObject({ type: v.literal("agent_reasoning") }),
 	v.looseObject({ type: v.literal("context_compacted") }),
@@ -258,6 +284,18 @@ const worldStateLineSchema = v.looseObject({
 
 export type WorldStateLine = v.InferOutput<typeof worldStateLineSchema>;
 
+const interAgentCommunicationMetadataLineSchema = v.looseObject({
+	type: v.literal("inter_agent_communication_metadata"),
+	timestamp: v.optional(v.string()),
+	payload: v.looseObject({
+		trigger_turn: v.boolean(),
+	}),
+});
+
+export type InterAgentCommunicationMetadataLine = v.InferOutput<
+	typeof interAgentCommunicationMetadataLineSchema
+>;
+
 export const codexCliLineSchema = v.variant("type", [
 	responseItemLineSchema,
 	eventMsgLineSchema,
@@ -265,6 +303,7 @@ export const codexCliLineSchema = v.variant("type", [
 	sessionMetaLineSchema,
 	compactedLineSchema,
 	worldStateLineSchema,
+	interAgentCommunicationMetadataLineSchema,
 ]);
 
 export type CodexCliLine = v.InferOutput<typeof codexCliLineSchema>;
