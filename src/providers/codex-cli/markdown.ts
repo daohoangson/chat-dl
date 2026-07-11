@@ -33,7 +33,9 @@ interface RenderContext {
 	toolOutputs: Map<string, ToolOutput>;
 	renderedOutputs: Set<string>;
 	usage: UsageStats;
-	usageFromTotals: UsageStats | null;
+	usageCost: number | null;
+	usageModelLabels: string[];
+	includedSubagents: number;
 }
 
 const MAX_OUTPUT_LINES = 200;
@@ -55,7 +57,29 @@ interface PricingInfo {
 	note?: string;
 }
 
-export function renderFromLines(lines: CodexCliLine[]): string {
+export interface RenderOptions {
+	rootSessionId?: string;
+	subagentSessions?: RenderSubagentSession[];
+	includeUsageSummary?: boolean;
+}
+
+export interface RenderSubagentSession {
+	id: string;
+	parentId: string | null;
+	agentNickname: string | undefined;
+	agentRole: string | undefined;
+	lines: CodexCliLine[];
+}
+
+export function renderFromLines(
+	lines: CodexCliLine[],
+	options?: RenderOptions,
+): string {
+	const subagentSessions = options?.subagentSessions ?? [];
+	const usage = collectUsage([
+		lines,
+		...subagentSessions.map((session) => session.lines),
+	]);
 	const ctx: RenderContext = {
 		markdown: [],
 		lastSender: null,
@@ -65,16 +89,14 @@ export function renderFromLines(lines: CodexCliLine[]): string {
 		lastAssistantTimestamp: null,
 		toolOutputs: new Map(),
 		renderedOutputs: new Set(),
-		usage: emptyUsageStats(),
-		usageFromTotals: null,
+		usage: usage.stats,
+		usageCost: usage.cost,
+		usageModelLabels: usage.modelLabels,
+		includedSubagents: subagentSessions.length,
 	};
 
-	// First pass: collect tool outputs and usage stats
+	// First pass: collect tool outputs
 	for (const line of lines) {
-		if (isEventMsgLine(line)) {
-			collectUsage(ctx, line);
-			continue;
-		}
 		if (!isResponseItemLine(line)) continue;
 		const payload = line.payload;
 		if (isFunctionCallOutputPayload(payload)) {
@@ -154,9 +176,59 @@ export function renderFromLines(lines: CodexCliLine[]): string {
 	}
 
 	renderTurnRuntime(ctx);
-	renderUsageSummary(ctx);
+	renderSubagentSessions(ctx, options?.rootSessionId, subagentSessions);
+	if (options?.includeUsageSummary !== false) {
+		renderUsageSummary(ctx);
+	}
 
 	return ctx.markdown.join("\n\n");
+}
+
+function renderSubagentSessions(
+	ctx: RenderContext,
+	rootSessionId: string | undefined,
+	sessions: RenderSubagentSession[],
+): void {
+	if (!rootSessionId || sessions.length === 0) return;
+	const childrenByParent = new Map<string, RenderSubagentSession[]>();
+	for (const session of sessions) {
+		if (!session.parentId) continue;
+		const children = childrenByParent.get(session.parentId) ?? [];
+		children.push(session);
+		childrenByParent.set(session.parentId, children);
+	}
+
+	renderSubagentChildren(ctx, rootSessionId, childrenByParent, new Set());
+}
+
+function renderSubagentChildren(
+	ctx: RenderContext,
+	parentId: string,
+	childrenByParent: Map<string, RenderSubagentSession[]>,
+	seenIds: Set<string>,
+): void {
+	for (const session of childrenByParent.get(parentId) ?? []) {
+		if (seenIds.has(session.id)) continue;
+		seenIds.add(session.id);
+		const label = session.agentNickname
+			? `Subagent: ${session.agentNickname}${session.agentRole ? ` (${session.agentRole})` : ""}`
+			: `Subagent: ${session.id}`;
+		ctx.markdown.push(`<details><summary>${escapeHtml(label)}</summary>`);
+		const markdown = renderFromLines(session.lines, {
+			includeUsageSummary: false,
+		});
+		if (markdown.trim()) ctx.markdown.push(markdown);
+		renderSubagentChildren(ctx, session.id, childrenByParent, seenIds);
+		ctx.markdown.push("</details>");
+	}
+}
+
+function escapeHtml(value: string): string {
+	return value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;");
 }
 
 function renderMessage(
@@ -289,24 +361,75 @@ function emptyUsageStats(): UsageStats {
 	};
 }
 
-function collectUsage(ctx: RenderContext, line: CodexCliLine): void {
-	if (!isEventMsgLine(line)) return;
-	if (line.payload.type !== "token_count") return;
-	const info = line.payload.info;
-	if (!info || info === null || typeof info !== "object") return;
+interface UsageAggregation {
+	stats: UsageStats;
+	cost: number | null;
+	modelLabels: string[];
+}
 
-	const totalUsage = (info as { total_token_usage?: TokenUsage })
-		.total_token_usage;
-	if (totalUsage) {
-		ctx.usageFromTotals = toUsageStats(totalUsage);
-		return;
+function collectUsage(lineGroups: CodexCliLine[][]): UsageAggregation {
+	const stats = emptyUsageStats();
+	const modelLabels = new Set<string>();
+	let cost = 0;
+	let costComplete = true;
+
+	for (const lines of lineGroups) {
+		const session = collectSessionUsage(lines);
+		addUsageStats(stats, session.stats);
+		if (!hasUsage(session.stats)) continue;
+
+		const pricing = getPricing(session.model);
+		if (!pricing) {
+			costComplete = false;
+			continue;
+		}
+		modelLabels.add(pricing.modelLabel);
+		cost += calculateUsageCost(session.stats, pricing);
 	}
 
-	const lastUsage = (info as { last_token_usage?: TokenUsage })
-		.last_token_usage;
-	if (lastUsage) {
-		addUsage(ctx.usage, lastUsage);
+	return {
+		stats,
+		cost: costComplete ? cost : null,
+		modelLabels: [...modelLabels],
+	};
+}
+
+function collectSessionUsage(lines: CodexCliLine[]): {
+	stats: UsageStats;
+	model: string | null;
+} {
+	const usageFromLastEvents = emptyUsageStats();
+	let usageFromTotals: UsageStats | null = null;
+	let model: string | null = null;
+
+	for (const line of lines) {
+		if (isTurnContextLine(line) && line.payload.model) {
+			model = line.payload.model;
+		}
+		if (!isEventMsgLine(line) || line.payload.type !== "token_count") {
+			continue;
+		}
+		const info = line.payload.info;
+		if (!info || info === null || typeof info !== "object") continue;
+
+		const totalUsage = (info as { total_token_usage?: TokenUsage })
+			.total_token_usage;
+		if (totalUsage) {
+			usageFromTotals = toUsageStats(totalUsage);
+			continue;
+		}
+
+		const lastUsage = (info as { last_token_usage?: TokenUsage })
+			.last_token_usage;
+		if (lastUsage) {
+			addUsage(usageFromLastEvents, lastUsage);
+		}
 	}
+
+	return {
+		stats: usageFromTotals ?? usageFromLastEvents,
+		model,
+	};
 }
 
 function toUsageStats(usage: TokenUsage): UsageStats {
@@ -327,16 +450,41 @@ function addUsage(target: UsageStats, usage: TokenUsage): void {
 	target.totalTokens += usage.total_tokens ?? 0;
 }
 
-function renderUsageSummary(ctx: RenderContext): void {
-	const usage = ctx.usageFromTotals ?? ctx.usage;
-	const hasUsage =
+function addUsageStats(target: UsageStats, usage: UsageStats): void {
+	target.inputTokens += usage.inputTokens;
+	target.outputTokens += usage.outputTokens;
+	target.cachedInputTokens += usage.cachedInputTokens;
+	target.reasoningTokens += usage.reasoningTokens;
+	target.totalTokens += usage.totalTokens;
+}
+
+function hasUsage(usage: UsageStats): boolean {
+	return (
 		usage.inputTokens > 0 ||
 		usage.outputTokens > 0 ||
 		usage.cachedInputTokens > 0 ||
 		usage.reasoningTokens > 0 ||
-		usage.totalTokens > 0;
+		usage.totalTokens > 0
+	);
+}
 
-	if (!hasUsage) return;
+function calculateUsageCost(usage: UsageStats, pricing: PricingInfo): number {
+	const uncachedInputTokens = Math.max(
+		usage.inputTokens - usage.cachedInputTokens,
+		0,
+	);
+	return (
+		(uncachedInputTokens * pricing.input +
+			usage.cachedInputTokens * pricing.cacheRead +
+			usage.outputTokens * pricing.output) /
+		1_000_000
+	);
+}
+
+function renderUsageSummary(ctx: RenderContext): void {
+	const usage = ctx.usage;
+
+	if (!hasUsage(usage)) return;
 
 	ctx.markdown.push("---");
 	ctx.markdown.push("## Usage Summary");
@@ -362,25 +510,20 @@ function renderUsageSummary(ctx: RenderContext): void {
 		lines.push(`- **Total tokens:** ${formatNumber(usage.totalTokens)}`);
 	}
 
-	const pricing = getPricing(ctx.lastModel ?? ctx.currentModel);
-	if (pricing) {
-		const uncachedInputTokens = Math.max(
-			usage.inputTokens - usage.cachedInputTokens,
-			0,
-		);
-		const cachedInputRate = pricing.cacheRead;
-		const cost =
-			(uncachedInputTokens * pricing.input +
-				usage.cachedInputTokens * cachedInputRate +
-				usage.outputTokens * pricing.output) /
-			1_000_000;
-
+	if (ctx.includedSubagents > 0) {
 		lines.push(
-			`- **Estimated cost:** $${cost.toFixed(2)} (${pricing.modelLabel})`,
+			`- **Included subagent sessions:** ${formatNumber(ctx.includedSubagents)}`,
 		);
-		if (pricing.note) {
-			lines.push(`- **Pricing note:** ${pricing.note}`);
-		}
+	}
+
+	if (ctx.usageCost !== null) {
+		const modelLabel =
+			ctx.usageModelLabels.length === 1
+				? ctx.usageModelLabels[0]
+				: "mixed models";
+		lines.push(
+			`- **Estimated cost:** $${ctx.usageCost.toFixed(2)} (${modelLabel})`,
+		);
 	}
 
 	ctx.markdown.push(lines.join("\n"));

@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { parseSchemaOrThrow } from "@/common";
 import { type RenderOptions, renderFromLines } from "./markdown";
@@ -39,6 +39,16 @@ export function renderMarkdownFromPath(filePath: string): string {
 	const options: RenderOptions = {};
 	if (existsSync(subagentsDir)) {
 		options.subagentsDir = subagentsDir;
+		options.usageLineGroups = readdirSync(subagentsDir, {
+			withFileTypes: true,
+		})
+			.filter(
+				(entry) =>
+					entry.isFile() &&
+					entry.name.startsWith("agent-") &&
+					entry.name.endsWith(".jsonl"),
+			)
+			.map((entry) => parseJsonlFromPath(join(subagentsDir, entry.name)));
 	}
 
 	return renderFromLines(lines, options);

@@ -122,6 +122,7 @@ export type Usage = v.InferOutput<typeof usageSchema>;
 
 // Assistant message schema (content, model, and usage are used)
 const assistantMessageSchema = v.looseObject({
+	id: v.optional(v.string()),
 	content: assistantContentSchema,
 	model: v.optional(v.string()),
 	usage: v.optional(usageSchema),

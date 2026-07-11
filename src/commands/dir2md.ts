@@ -1,6 +1,10 @@
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative } from "node:path";
-import { getProviderByPath, renderMarkdownFromPath } from "@/providers";
+import {
+	getProviderByPath,
+	renderMarkdownFromPath,
+	shouldSkipSubagentPath,
+} from "@/providers";
 import type { CommandModule } from "yargs";
 
 interface Dir2mdArgs {
@@ -39,6 +43,9 @@ function processDirectory(
 		const provider = getProviderByPath(inputPath);
 		if (!provider) {
 			skipped++;
+			continue;
+		}
+		if (shouldSkipSubagentPath(inputPath)) {
 			continue;
 		}
 

@@ -115,4 +115,11 @@ export function renderMarkdownFromPath(path: string) {
 	}
 }
 
+export function shouldSkipSubagentPath(path: string): boolean {
+	return (
+		getProviderByPath(path) === "codex-cli" &&
+		codexCli.isSubagentSessionPath(path)
+	);
+}
+
 export { getProviderByPath, isLocalPath };

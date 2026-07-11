@@ -56,6 +56,9 @@ interface RenderContext {
 	lastUserTimestamp: string | null;
 	lastAssistantTimestamp: string | null;
 	usage: UsageStats;
+	usageCost: number;
+	usageModelLabels: string[];
+	includedSubagents: number;
 	cwd: string | null;
 	homeDir: string;
 	username: string;
@@ -65,12 +68,16 @@ interface RenderContext {
 
 export interface RenderOptions {
 	subagentsDir?: string;
+	usageLineGroups?: JsonlLine[][];
+	includeUsageSummary?: boolean;
 }
 
 export function renderFromLines(
 	lines: JsonlLine[],
 	options?: RenderOptions,
 ): string {
+	const usage = collectUsage([lines, ...(options?.usageLineGroups ?? [])]);
+
 	// Extract cwd from first user or assistant line that has it
 	let cwd: string | null = null;
 	for (const line of lines) {
@@ -88,12 +95,10 @@ export function renderFromLines(
 		lastModel: null,
 		lastUserTimestamp: null,
 		lastAssistantTimestamp: null,
-		usage: {
-			inputTokens: 0,
-			outputTokens: 0,
-			cacheCreationTokens: 0,
-			cacheReadTokens: 0,
-		},
+		usage: usage.stats,
+		usageCost: usage.cost,
+		usageModelLabels: usage.modelLabels,
+		includedSubagents: options?.usageLineGroups?.length ?? 0,
 		cwd,
 		homeDir: homedir(),
 		username: userInfo().username,
@@ -137,7 +142,9 @@ export function renderFromLines(
 	renderTurnRuntime(ctx);
 
 	// Add usage summary at the end
-	renderUsageSummary(ctx);
+	if (options?.includeUsageSummary !== false) {
+		renderUsageSummary(ctx);
+	}
 
 	return ctx.markdown.join("\n\n");
 }
@@ -234,13 +241,8 @@ function cleanUserContent(content: string): string {
 }
 
 function renderAssistantLine(ctx: RenderContext, line: AssistantLine): void {
-	const { content, model, usage } = line.message;
+	const { content, model } = line.message;
 	const parts: string[] = [];
-
-	// Accumulate usage stats
-	if (usage) {
-		accumulateUsage(ctx, usage);
-	}
 
 	for (const item of content) {
 		switch (item.type) {
@@ -668,11 +670,60 @@ function shouldSkipEditedTextFile(filename: string): boolean {
 	return filename.startsWith("/tmp/") || filename.startsWith("/private/tmp/");
 }
 
-function accumulateUsage(ctx: RenderContext, usage: Usage): void {
-	ctx.usage.inputTokens += usage.input_tokens ?? 0;
-	ctx.usage.outputTokens += usage.output_tokens ?? 0;
-	ctx.usage.cacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
-	ctx.usage.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
+interface UsageAggregation {
+	stats: UsageStats;
+	cost: number;
+	modelLabels: string[];
+}
+
+function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
+	const stats: UsageStats = {
+		inputTokens: 0,
+		outputTokens: 0,
+		cacheCreationTokens: 0,
+		cacheReadTokens: 0,
+	};
+	const seenMessageIds = new Set<string>();
+	const modelLabels = new Set<string>();
+	let cost = 0;
+
+	for (const lines of lineGroups) {
+		for (const line of lines) {
+			if (!isAssistantLine(line) || !line.message.usage) continue;
+			const messageId = line.message.id;
+			if (messageId) {
+				if (seenMessageIds.has(messageId)) continue;
+				seenMessageIds.add(messageId);
+			}
+
+			const usage = line.message.usage;
+			accumulateUsage(stats, usage);
+			const pricing = getPricing(line.message.model ?? null);
+			if (pricing) {
+				modelLabels.add(pricing.modelLabel);
+				cost += calculateUsageCost(usage, pricing);
+			}
+		}
+	}
+
+	return { stats, cost, modelLabels: [...modelLabels] };
+}
+
+function accumulateUsage(target: UsageStats, usage: Usage): void {
+	target.inputTokens += usage.input_tokens ?? 0;
+	target.outputTokens += usage.output_tokens ?? 0;
+	target.cacheCreationTokens += usage.cache_creation_input_tokens ?? 0;
+	target.cacheReadTokens += usage.cache_read_input_tokens ?? 0;
+}
+
+function calculateUsageCost(usage: Usage, pricing: PricingInfo): number {
+	return (
+		((usage.input_tokens ?? 0) * pricing.input +
+			(usage.output_tokens ?? 0) * pricing.output +
+			(usage.cache_creation_input_tokens ?? 0) * pricing.cacheWrite +
+			(usage.cache_read_input_tokens ?? 0) * pricing.cacheRead) /
+		1_000_000
+	);
 }
 
 // Pricing per million tokens.
@@ -716,7 +767,7 @@ const PRICING = {
 } satisfies Record<string, PricingInfo>;
 
 function renderUsageSummary(ctx: RenderContext): void {
-	const { usage, lastModel } = ctx;
+	const { usage } = ctx;
 	const totalInput =
 		usage.inputTokens + usage.cacheCreationTokens + usage.cacheReadTokens;
 
@@ -738,20 +789,19 @@ function renderUsageSummary(ctx: RenderContext): void {
 		);
 		lines.push(`- **Cache read:** ${formatNumber(usage.cacheReadTokens)}`);
 	}
-
-	// Calculate cost estimate
-	const pricing = getPricing(lastModel);
-	if (pricing) {
-		const cost =
-			(usage.inputTokens * pricing.input) / 1_000_000 +
-			(usage.outputTokens * pricing.output) / 1_000_000 +
-			(usage.cacheCreationTokens * pricing.cacheWrite) / 1_000_000 +
-			(usage.cacheReadTokens * pricing.cacheRead) / 1_000_000;
-
+	if (ctx.includedSubagents > 0) {
 		lines.push(
-			`- **Estimated cost:** $${cost.toFixed(2)} (${pricing.modelLabel})`,
+			`- **Included subagents:** ${formatNumber(ctx.includedSubagents)}`,
 		);
 	}
+
+	const modelLabel =
+		ctx.usageModelLabels.length === 1
+			? ctx.usageModelLabels[0]
+			: "mixed models";
+	lines.push(
+		`- **Estimated cost:** $${ctx.usageCost.toFixed(2)} (${modelLabel})`,
+	);
 
 	ctx.markdown.push(lines.join("\n"));
 }
@@ -975,6 +1025,7 @@ function renderToolUseContent(
 			parts.push(todoLines.join("\n"));
 			break;
 		}
+		case "Agent":
 		case "Task": {
 			const typedInput = input as {
 				description?: string;
@@ -1138,7 +1189,9 @@ function renderSubagentIfExists(
 		if (subagentLines.length === 0) return;
 
 		// Render subagent without nested subagent support (to avoid infinite recursion)
-		const subagentMarkdown = renderFromLines(subagentLines);
+		const subagentMarkdown = renderFromLines(subagentLines, {
+			includeUsageSummary: false,
+		});
 		if (subagentMarkdown.trim()) {
 			parts.push(`<details><summary>Subagent (${agentId})</summary>`);
 			parts.push(subagentMarkdown);
