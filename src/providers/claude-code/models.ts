@@ -116,6 +116,14 @@ const usageSchema = v.looseObject({
 	output_tokens: v.optional(v.number()),
 	cache_creation_input_tokens: v.optional(v.number()),
 	cache_read_input_tokens: v.optional(v.number()),
+	cache_creation: v.optional(
+		v.looseObject({
+			ephemeral_5m_input_tokens: v.optional(v.number()),
+			ephemeral_1h_input_tokens: v.optional(v.number()),
+		}),
+	),
+	speed: v.optional(v.union([v.string(), v.null()])),
+	inference_geo: v.optional(v.union([v.string(), v.null()])),
 });
 
 export type Usage = v.InferOutput<typeof usageSchema>;
@@ -280,6 +288,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("hook_deferred_tool"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("hook_non_blocking_error"),
 		...attachmentPayloadFields,
 	}),
@@ -305,6 +317,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("queued_command"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("read_truncation_notice"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({

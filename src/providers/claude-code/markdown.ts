@@ -43,8 +43,11 @@ interface PricingInfo {
 	modelLabel: string;
 	input: number;
 	output: number;
-	cacheWrite: number;
+	cacheWrite5m: number;
+	cacheWrite1h: number;
 	cacheRead: number;
+	fastInput?: number;
+	fastOutput?: number;
 }
 
 interface RenderContext {
@@ -56,7 +59,7 @@ interface RenderContext {
 	lastUserTimestamp: string | null;
 	lastAssistantTimestamp: string | null;
 	usage: UsageStats;
-	usageCost: number;
+	usageCost: number | null;
 	usageModelLabels: string[];
 	includedSubagents: number;
 	cwd: string | null;
@@ -672,7 +675,7 @@ function shouldSkipEditedTextFile(filename: string): boolean {
 
 interface UsageAggregation {
 	stats: UsageStats;
-	cost: number;
+	cost: number | null;
 	modelLabels: string[];
 }
 
@@ -686,6 +689,7 @@ function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
 	const seenMessageIds = new Set<string>();
 	const modelLabels = new Set<string>();
 	let cost = 0;
+	let costComplete = true;
 
 	for (const lines of lineGroups) {
 		for (const line of lines) {
@@ -698,15 +702,31 @@ function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
 
 			const usage = line.message.usage;
 			accumulateUsage(stats, usage);
+			if (!hasBillableUsage(usage)) continue;
 			const pricing = getPricing(line.message.model ?? null);
 			if (pricing) {
 				modelLabels.add(pricing.modelLabel);
 				cost += calculateUsageCost(usage, pricing);
+			} else {
+				costComplete = false;
 			}
 		}
 	}
 
-	return { stats, cost, modelLabels: [...modelLabels] };
+	return {
+		stats,
+		cost: costComplete ? cost : null,
+		modelLabels: [...modelLabels],
+	};
+}
+
+function hasBillableUsage(usage: Usage): boolean {
+	return (
+		(usage.input_tokens ?? 0) > 0 ||
+		(usage.output_tokens ?? 0) > 0 ||
+		(usage.cache_creation_input_tokens ?? 0) > 0 ||
+		(usage.cache_read_input_tokens ?? 0) > 0
+	);
 }
 
 function accumulateUsage(target: UsageStats, usage: Usage): void {
@@ -717,51 +737,108 @@ function accumulateUsage(target: UsageStats, usage: Usage): void {
 }
 
 function calculateUsageCost(usage: Usage, pricing: PricingInfo): number {
+	const cacheWrite5m = usage.cache_creation?.ephemeral_5m_input_tokens ?? 0;
+	const cacheWrite1h = usage.cache_creation?.ephemeral_1h_input_tokens ?? 0;
+	const unclassifiedCacheWrite = Math.max(
+		(usage.cache_creation_input_tokens ?? 0) - cacheWrite5m - cacheWrite1h,
+		0,
+	);
+	const isFast =
+		usage.speed === "fast" &&
+		pricing.fastInput !== undefined &&
+		pricing.fastOutput !== undefined;
+	const inputRate = isFast
+		? (pricing.fastInput ?? pricing.input)
+		: pricing.input;
+	const outputRate = isFast
+		? (pricing.fastOutput ?? pricing.output)
+		: pricing.output;
+	const cacheWrite5mRate = isFast ? inputRate * 1.25 : pricing.cacheWrite5m;
+	const cacheWrite1hRate = isFast ? inputRate * 2 : pricing.cacheWrite1h;
+	const cacheReadRate = isFast ? inputRate * 0.1 : pricing.cacheRead;
+	const geographyMultiplier = usage.inference_geo === "us" ? 1.1 : 1;
+
 	return (
-		((usage.input_tokens ?? 0) * pricing.input +
-			(usage.output_tokens ?? 0) * pricing.output +
-			(usage.cache_creation_input_tokens ?? 0) * pricing.cacheWrite +
-			(usage.cache_read_input_tokens ?? 0) * pricing.cacheRead) /
+		(((usage.input_tokens ?? 0) * inputRate +
+			(usage.output_tokens ?? 0) * outputRate +
+			(cacheWrite5m + unclassifiedCacheWrite) * cacheWrite5mRate +
+			cacheWrite1h * cacheWrite1hRate +
+			(usage.cache_read_input_tokens ?? 0) * cacheReadRate) *
+			geographyMultiplier) /
 		1_000_000
 	);
 }
 
 // Pricing per million tokens.
-// Source: https://models.dev/providers/anthropic
+// Source: https://platform.claude.com/docs/en/about-claude/pricing
+// Sonnet 5 intentionally uses its published standard rate, not introductory pricing.
 const PRICING = {
-	fable: {
-		modelLabel: "claude-fable-5",
+	fableAndMythos5: {
+		modelLabel: "claude-fable/mythos-5",
 		input: 10,
 		output: 50,
-		cacheWrite: 12.5,
+		cacheWrite5m: 12.5,
+		cacheWrite1h: 20,
 		cacheRead: 1,
 	},
-	haiku: {
-		modelLabel: "claude-haiku",
+	haiku45: {
+		modelLabel: "claude-haiku-4.5",
 		input: 1,
 		output: 5,
-		cacheWrite: 1.25,
+		cacheWrite5m: 1.25,
+		cacheWrite1h: 2,
 		cacheRead: 0.1,
 	},
-	sonnet: {
-		modelLabel: "claude-sonnet",
+	haiku35: {
+		modelLabel: "claude-haiku-3.5",
+		input: 0.8,
+		output: 4,
+		cacheWrite5m: 1,
+		cacheWrite1h: 1.6,
+		cacheRead: 0.08,
+	},
+	sonnet4And5: {
+		modelLabel: "claude-sonnet-4/5",
 		input: 3,
 		output: 15,
-		cacheWrite: 3.75,
+		cacheWrite5m: 3.75,
+		cacheWrite1h: 6,
 		cacheRead: 0.3,
 	},
-	opus: {
+	opus45Plus: {
 		modelLabel: "claude-opus-4.5+",
 		input: 5,
 		output: 25,
-		cacheWrite: 6.25,
+		cacheWrite5m: 6.25,
+		cacheWrite1h: 10,
 		cacheRead: 0.5,
+	},
+	opus47: {
+		modelLabel: "claude-opus-4.7",
+		input: 5,
+		output: 25,
+		cacheWrite5m: 6.25,
+		cacheWrite1h: 10,
+		cacheRead: 0.5,
+		fastInput: 30,
+		fastOutput: 150,
+	},
+	opus48: {
+		modelLabel: "claude-opus-4.8",
+		input: 5,
+		output: 25,
+		cacheWrite5m: 6.25,
+		cacheWrite1h: 10,
+		cacheRead: 0.5,
+		fastInput: 10,
+		fastOutput: 50,
 	},
 	opusLegacy: {
 		modelLabel: "claude-opus-4/4.1",
 		input: 15,
 		output: 75,
-		cacheWrite: 18.75,
+		cacheWrite5m: 18.75,
+		cacheWrite1h: 30,
 		cacheRead: 1.5,
 	},
 } satisfies Record<string, PricingInfo>;
@@ -795,21 +872,25 @@ function renderUsageSummary(ctx: RenderContext): void {
 		);
 	}
 
-	const modelLabel =
-		ctx.usageModelLabels.length === 1
-			? ctx.usageModelLabels[0]
-			: "mixed models";
-	lines.push(
-		`- **Estimated cost:** $${ctx.usageCost.toFixed(2)} (${modelLabel})`,
-	);
+	if (ctx.usageCost !== null) {
+		const modelLabel =
+			ctx.usageModelLabels.length === 1
+				? ctx.usageModelLabels[0]
+				: "mixed models";
+		lines.push(
+			`- **Estimated cost:** $${ctx.usageCost.toFixed(2)} (${modelLabel})`,
+		);
+	}
 
 	ctx.markdown.push(lines.join("\n"));
 }
 
 function getPricing(model: string | null): PricingInfo | null {
-	if (!model) return PRICING.sonnet; // Default to sonnet
+	if (!model) return null;
 	const normalized = model.toLowerCase();
-	if (normalized.includes("fable")) return PRICING.fable;
+	if (normalized.includes("fable") || normalized.includes("mythos")) {
+		return PRICING.fableAndMythos5;
+	}
 	if (
 		normalized.endsWith("opus-4") ||
 		normalized.includes("opus-4-0") ||
@@ -819,10 +900,15 @@ function getPricing(model: string | null): PricingInfo | null {
 	) {
 		return PRICING.opusLegacy;
 	}
-	if (normalized.includes("opus")) return PRICING.opus;
-	if (normalized.includes("haiku")) return PRICING.haiku;
-	if (normalized.includes("sonnet")) return PRICING.sonnet;
-	return PRICING.sonnet; // Default
+	if (normalized.includes("opus-4-8")) return PRICING.opus48;
+	if (normalized.includes("opus-4-7")) return PRICING.opus47;
+	if (normalized.includes("opus")) return PRICING.opus45Plus;
+	if (normalized.includes("haiku-3-5") || normalized.includes("3-5-haiku")) {
+		return PRICING.haiku35;
+	}
+	if (normalized.includes("haiku")) return PRICING.haiku45;
+	if (normalized.includes("sonnet")) return PRICING.sonnet4And5;
+	return null;
 }
 
 function formatNumber(n: number): string {
