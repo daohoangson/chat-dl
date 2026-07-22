@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { parseSchemaOrThrow } from "@/common";
 import { type RenderOptions, renderFromLines } from "./markdown";
@@ -29,7 +29,10 @@ export function parseJsonlFromPath(filePath: string): JsonlLine[] {
 export function renderMarkdownFromPath(filePath: string): string {
 	const lines = parseJsonlFromPath(filePath);
 
-	// Check for subagents directory: <sessionId>/subagents/
+	// Sub-agent transcripts live under <sessionId>/subagents/, either flat
+	// (agent-*.jsonl, from the Task tool) or nested under workflows/wf_*/
+	// (from the Workflow tool). They are read recursively so their token usage
+	// is counted toward the cost total, but they are not rendered inline.
 	// File path is like: /path/to/<sessionId>.jsonl
 	// Subagents dir is: /path/to/<sessionId>/subagents/
 	const dir = dirname(filePath);
@@ -38,20 +41,34 @@ export function renderMarkdownFromPath(filePath: string): string {
 
 	const options: RenderOptions = {};
 	if (existsSync(subagentsDir)) {
-		options.subagentsDir = subagentsDir;
-		options.usageLineGroups = readdirSync(subagentsDir, {
-			withFileTypes: true,
-		})
-			.filter(
-				(entry) =>
-					entry.isFile() &&
-					entry.name.startsWith("agent-") &&
-					entry.name.endsWith(".jsonl"),
-			)
-			.map((entry) => parseJsonlFromPath(join(subagentsDir, entry.name)));
+		options.usageLineGroups = collectAgentJsonlPaths(subagentsDir).map(
+			(agentPath) => parseJsonlFromPath(agentPath),
+		);
 	}
 
 	return renderFromLines(lines, options);
+}
+
+// Recursively collect every agent-*.jsonl transcript under a subagents
+// directory, at any depth. This covers flat Task sub-agents
+// (subagents/agent-*.jsonl) and nested workflow sub-agents
+// (subagents/workflows/wf_*/agent-*.jsonl). Non-.jsonl sidecars such as
+// agent-*.meta.json are excluded by the extension check.
+function collectAgentJsonlPaths(dir: string): string[] {
+	const paths: string[] = [];
+	for (const entry of readdirSync(dir, { withFileTypes: true })) {
+		const entryPath = join(dir, entry.name);
+		if (entry.isDirectory()) {
+			paths.push(...collectAgentJsonlPaths(entryPath));
+		} else if (
+			entry.isFile() &&
+			entry.name.startsWith("agent-") &&
+			entry.name.endsWith(".jsonl")
+		) {
+			paths.push(entryPath);
+		}
+	}
+	return paths;
 }
 
 export function renderMarkdownFromJson(json: unknown): string {
