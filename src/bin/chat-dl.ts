@@ -7,4 +7,8 @@ yargs(process.argv.slice(2))
 	.command(url2json)
 	.command(url2md)
 	.demandCommand(1)
-	.parse();
+	.parseAsync()
+	.catch((error: unknown) => {
+		console.error(error);
+		process.exitCode = 1;
+	});

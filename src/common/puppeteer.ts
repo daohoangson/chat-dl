@@ -1,7 +1,7 @@
 import puppeteer, { type Browser, type Page } from "puppeteer";
 
 export async function newBrowserPage<T>(fn: (page: Page) => Promise<T>) {
-	const { PUPPETEER_BROWSER_WS_ENDPOINT } = process.env;
+	const { PUPPETEER_BROWSER_WS_ENDPOINT, PUPPETEER_HEADLESS } = process.env;
 
 	let browser: Browser;
 	if (typeof PUPPETEER_BROWSER_WS_ENDPOINT === "string") {
@@ -9,7 +9,9 @@ export async function newBrowserPage<T>(fn: (page: Page) => Promise<T>) {
 			browserWSEndpoint: PUPPETEER_BROWSER_WS_ENDPOINT,
 		});
 	} else {
-		browser = await puppeteer.launch({ headless: false });
+		browser = await puppeteer.launch({
+			headless: PUPPETEER_HEADLESS === "true",
+		});
 	}
 
 	let page: Page | undefined;
