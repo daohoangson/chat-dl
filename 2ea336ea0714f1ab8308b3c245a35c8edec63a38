@@ -1,0 +1,23 @@
+tsconfig.json
+  961939cdc9980797 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "2ea336ea0714f1ab8308b3c245a35c8edec63a38",
+  "prompts": {
+    "961939cdc9980797": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "bf712844-d561-4930-8eb0-06cbb30bb704",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
