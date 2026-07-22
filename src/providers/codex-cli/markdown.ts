@@ -219,13 +219,55 @@ function renderSubagentChildren(
 			? `Subagent: ${session.agentNickname}${session.agentRole ? ` (${session.agentRole})` : ""}`
 			: `Subagent: ${session.id}`;
 		ctx.markdown.push(`<details><summary>${escapeHtml(label)}</summary>`);
-		const markdown = renderFromLines(session.lines, {
-			includeUsageSummary: false,
-		});
-		if (markdown.trim()) ctx.markdown.push(markdown);
+		// Render the sub-agent minimally — its prompt and final response only,
+		// not the full transcript. Its token usage is still counted via
+		// collectUsage over subagentSessions.
+		const { prompt, response } = extractSubagentSummary(session.lines);
+		if (prompt) {
+			ctx.markdown.push("**Prompt:**");
+			ctx.markdown.push(prompt);
+		}
+		if (response) {
+			ctx.markdown.push("**Response:**");
+			ctx.markdown.push(response);
+		}
 		renderSubagentChildren(ctx, session.id, childrenByParent, seenIds);
 		ctx.markdown.push("</details>");
 	}
+}
+
+// Extract a sub-agent session's prompt (all user asks, with injected preamble
+// stripped) and final response (last assistant message). Used to render
+// sub-agents minimally instead of dumping their full transcript. The first user
+// message is typically pure environment preamble that cleans to empty; the real
+// task(s) arrive in later user turns, so collect every non-empty one.
+function extractSubagentSummary(lines: CodexCliLine[]): {
+	prompt: string | null;
+	response: string | null;
+} {
+	const prompts: string[] = [];
+	let response: string | null = null;
+
+	for (const line of lines) {
+		if (!isResponseItemLine(line)) continue;
+		const payload = line.payload;
+		if (!isMessagePayload(payload)) continue;
+
+		const text = extractMessageText(payload).trim();
+		if (!text) continue;
+
+		if (payload.role === "user") {
+			const cleaned = cleanUserContent(text).trim();
+			if (cleaned) prompts.push(cleaned);
+		} else if (payload.role === "assistant") {
+			response = text;
+		}
+	}
+
+	return {
+		prompt: prompts.length > 0 ? prompts.join("\n\n") : null,
+		response,
+	};
 }
 
 function escapeHtml(value: string): string {
@@ -841,6 +883,9 @@ function cleanUserContent(content: string): string {
 		/<environment-context>[\s\S]*?<\/environment-context>/g,
 		/<user_instructions>[\s\S]*?<\/user_instructions>/g,
 		/<ide_opened_file>[\s\S]*?<\/ide_opened_file>/g,
+		/<recommended_plugins>[\s\S]*?<\/recommended_plugins>/g,
+		/^# AGENTS\.md instructions for [^\n]*$/gm,
+		/<INSTRUCTIONS>[\s\S]*?<\/INSTRUCTIONS>/g,
 	];
 
 	for (const pattern of patterns) {
