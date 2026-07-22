@@ -1,6 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
 import { homedir, userInfo } from "node:os";
-import { join } from "node:path";
 import { formatCodeBlock } from "../../common/markdown";
 import type {
 	AssistantLine,
@@ -53,7 +51,6 @@ interface PricingInfo {
 interface RenderContext {
 	markdown: string[];
 	toolResults: Map<string, ToolResultContent>;
-	agentIds: Map<string, string>; // tool_use_id -> agentId
 	lastSender: Sender;
 	lastModel: string | null;
 	lastUserTimestamp: string | null;
@@ -65,12 +62,10 @@ interface RenderContext {
 	cwd: string | null;
 	homeDir: string;
 	username: string;
-	subagentsDir: string | null;
 	seenLinkUrls: Set<string>;
 }
 
 export interface RenderOptions {
-	subagentsDir?: string;
 	usageLineGroups?: JsonlLine[][];
 	includeUsageSummary?: boolean;
 }
@@ -93,7 +88,6 @@ export function renderFromLines(
 	const ctx: RenderContext = {
 		markdown: [],
 		toolResults: new Map(),
-		agentIds: new Map(),
 		lastSender: null,
 		lastModel: null,
 		lastUserTimestamp: null,
@@ -105,11 +99,10 @@ export function renderFromLines(
 		cwd,
 		homeDir: homedir(),
 		username: userInfo().username,
-		subagentsDir: options?.subagentsDir ?? null,
 		seenLinkUrls: new Set(),
 	};
 
-	// First pass: collect all tool results and agentIds from user messages
+	// First pass: collect all tool results from user messages
 	for (const line of lines) {
 		if (isUserLine(line)) {
 			collectToolResults(ctx, line);
@@ -154,22 +147,6 @@ export function renderFromLines(
 
 function collectToolResults(ctx: RenderContext, line: UserLine): void {
 	const { content } = line.message;
-
-	// Collect agentId from toolUseResult if present (and it's an object, not error string)
-	if (
-		line.toolUseResult &&
-		typeof line.toolUseResult === "object" &&
-		line.toolUseResult.agentId
-	) {
-		// Find the tool_use_id from the tool_result in this message
-		if (typeof content !== "string") {
-			for (const item of content) {
-				if (item.type === "tool_result") {
-					ctx.agentIds.set(item.tool_use_id, line.toolUseResult.agentId);
-				}
-			}
-		}
-	}
 
 	if (typeof content === "string") {
 		return;
@@ -1157,8 +1134,9 @@ function renderToolUseContent(
 			if (typedInput.prompt) {
 				parts.push(formatCodeBlock(maskText(ctx, typedInput.prompt.trim())));
 			}
-			// Render subagent inline if available
-			renderSubagentIfExists(ctx, parts, id);
+			// Render the sub-agent's final response only (not its full
+			// transcript). Its token usage is still counted via usageLineGroups.
+			renderToolResultIfExists(ctx, parts, id);
 			break;
 		}
 		case "WebFetch": {
@@ -1273,51 +1251,6 @@ function cleanToolResultContent(content: string): string {
 	return content
 		.replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "")
 		.trim();
-}
-
-function renderSubagentIfExists(
-	ctx: RenderContext,
-	parts: string[],
-	toolUseId: string,
-): void {
-	if (!ctx.subagentsDir) return;
-
-	const agentId = ctx.agentIds.get(toolUseId);
-	if (!agentId) return;
-
-	const subagentPath = join(ctx.subagentsDir, `agent-${agentId}.jsonl`);
-	if (!existsSync(subagentPath)) return;
-
-	try {
-		// Read and render the subagent JSONL
-		const content = readFileSync(subagentPath, "utf-8");
-		const lines = content.trim().split("\n");
-
-		const subagentLines: JsonlLine[] = [];
-		for (const line of lines) {
-			if (!line.trim()) continue;
-			try {
-				const json = JSON.parse(line) as JsonlLine;
-				subagentLines.push(json);
-			} catch {
-				// Skip invalid lines
-			}
-		}
-
-		if (subagentLines.length === 0) return;
-
-		// Render subagent without nested subagent support (to avoid infinite recursion)
-		const subagentMarkdown = renderFromLines(subagentLines, {
-			includeUsageSummary: false,
-		});
-		if (subagentMarkdown.trim()) {
-			parts.push(`<details><summary>Subagent (${agentId})</summary>`);
-			parts.push(subagentMarkdown);
-			parts.push("</details>");
-		}
-	} catch {
-		// Silently ignore errors reading subagent
-	}
 }
 
 function getFileExtension(filePath: string | undefined): string {
