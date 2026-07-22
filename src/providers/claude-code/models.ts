@@ -252,6 +252,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("auto_mode"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("command_permissions"),
 		...attachmentPayloadFields,
 	}),
