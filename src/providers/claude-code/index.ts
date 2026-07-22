@@ -1,4 +1,4 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { parseSchemaOrThrow } from "@/common";
 import { type RenderOptions, renderFromLines } from "./markdown";
