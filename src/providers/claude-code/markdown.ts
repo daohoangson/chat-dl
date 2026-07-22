@@ -686,30 +686,62 @@ function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
 		cacheCreationTokens: 0,
 		cacheReadTokens: 0,
 	};
-	const seenMessageIds = new Set<string>();
 	const modelLabels = new Set<string>();
 	let cost = 0;
 	let costComplete = true;
 
+	// Bill each assistant message exactly once, keyed on message.id.
+	//
+	// Dedup is GLOBAL across all lineGroups (the main transcript plus every
+	// sub-agent transcript), not per-file. message.id uniquely identifies a
+	// billed API response, so this guarantees we never over-count when the same
+	// response appears in more than one transcript — e.g. a sub-agent invoked
+	// several times (each invocation is a distinct file with distinct ids, so
+	// each is correctly billed separately), or the rarer case of one response
+	// being written into two files (collapsed to one here). Keep per-file dedup
+	// out of this: it would miss cross-file duplicates.
+	//
+	// A streamed assistant message is also written multiple times under one
+	// message.id: early partials (stop_reason null, small output_tokens) then a
+	// final complete row. Keep the most complete row — the greatest
+	// output_tokens (output grows monotonically while streaming; input/cache are
+	// fixed at request start). Rows without a message.id can't be deduped, so
+	// keep each.
+	type UsageEntry = { usage: Usage; model: string | null };
+	const bestById = new Map<string, UsageEntry>();
+	const anonymous: UsageEntry[] = [];
+
 	for (const lines of lineGroups) {
 		for (const line of lines) {
 			if (!isAssistantLine(line) || !line.message.usage) continue;
+			const entry: UsageEntry = {
+				usage: line.message.usage,
+				model: line.message.model ?? null,
+			};
 			const messageId = line.message.id;
-			if (messageId) {
-				if (seenMessageIds.has(messageId)) continue;
-				seenMessageIds.add(messageId);
+			if (!messageId) {
+				anonymous.push(entry);
+				continue;
 			}
+			const existing = bestById.get(messageId);
+			if (
+				!existing ||
+				(entry.usage.output_tokens ?? 0) > (existing.usage.output_tokens ?? 0)
+			) {
+				bestById.set(messageId, entry);
+			}
+		}
+	}
 
-			const usage = line.message.usage;
-			accumulateUsage(stats, usage);
-			if (!hasBillableUsage(usage)) continue;
-			const pricing = getPricing(line.message.model ?? null);
-			if (pricing) {
-				modelLabels.add(pricing.modelLabel);
-				cost += calculateUsageCost(usage, pricing);
-			} else {
-				costComplete = false;
-			}
+	for (const { usage, model } of [...bestById.values(), ...anonymous]) {
+		accumulateUsage(stats, usage);
+		if (!hasBillableUsage(usage)) continue;
+		const pricing = getPricing(model);
+		if (pricing) {
+			modelLabels.add(pricing.modelLabel);
+			cost += calculateUsageCost(usage, pricing);
+		} else {
+			costComplete = false;
 		}
 	}
 
