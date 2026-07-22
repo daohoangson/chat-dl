@@ -31,6 +31,7 @@ jobs:
         env:
           GROK_SMOKE_URL: https://x.com/i/grok/share/akO8vLhNg8etiOf15MCD1IHhN
           PUPPETEER_HEADLESS: "true"
+          PUPPETEER_NO_SANDBOX: "true"
         run: |
           output="$(mktemp)"
           trap 'rm -f "$output"' EXIT

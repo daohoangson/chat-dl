@@ -1,7 +1,11 @@
 import puppeteer, { type Browser, type Page } from "puppeteer";
 
 export async function newBrowserPage<T>(fn: (page: Page) => Promise<T>) {
-	const { PUPPETEER_BROWSER_WS_ENDPOINT, PUPPETEER_HEADLESS } = process.env;
+	const {
+		PUPPETEER_BROWSER_WS_ENDPOINT,
+		PUPPETEER_HEADLESS,
+		PUPPETEER_NO_SANDBOX,
+	} = process.env;
 
 	let browser: Browser;
 	if (typeof PUPPETEER_BROWSER_WS_ENDPOINT === "string") {
@@ -11,6 +15,10 @@ export async function newBrowserPage<T>(fn: (page: Page) => Promise<T>) {
 	} else {
 		browser = await puppeteer.launch({
 			headless: PUPPETEER_HEADLESS === "true",
+			args:
+				PUPPETEER_NO_SANDBOX === "true"
+					? ["--no-sandbox", "--disable-setuid-sandbox"]
+					: [],
 		});
 	}
 
