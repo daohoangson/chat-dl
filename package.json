@@ -29,6 +29,7 @@
 		"@types/yargs": "^17.0.33",
 		"acorn": "^8.14.1",
 		"espree": "^11.0.0",
+		"esprima": "^4.0.1",
 		"hermes-parser": "^0.36.0",
 		"tenko": "^2.0.1",
 		"tsup": "^8.4.0",
@@ -39,7 +40,7 @@
 		"@streamparser/json-node": "^0.0.22",
 		"chrome-remote-interface": "^0.34.0",
 		"file-system-cache": "^2.4.7",
-		"puppeteer": "^24.4.0",
+		"puppeteer": "^25.0.0",
 		"uuid": "^14.0.0",
 		"valibot": "^1.0.0",
 		"yargs": "^17.7.2"

@@ -2,6 +2,7 @@ name: CI
 
 on:
   push:
+  pull_request:
 
 jobs:
   biome:
@@ -22,3 +23,19 @@ jobs:
 
       - name: Run Biome CI
         run: npm run ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Smoke test CLI with public Grok share
+        env:
+          GROK_SMOKE_URL: https://x.com/i/grok/share/akO8vLhNg8etiOf15MCD1IHhN
+          PUPPETEER_HEADLESS: "true"
+          PUPPETEER_NO_SANDBOX: "true"
+        run: |
+          output="$(mktemp)"
+          trap 'rm -f "$output"' EXIT
+          node dist/chat-dl.js url2json "$GROK_SMOKE_URL" --output "$output"
+          test -s "$output"
+          grep -q '"provider":"grok"' "$output"
+          grep -q '"grokShare"' "$output"
