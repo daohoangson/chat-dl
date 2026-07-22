@@ -34,7 +34,7 @@
 		"tenko": "^2.0.1",
 		"tsup": "^8.4.0",
 		"tsx": "^4.19.3",
-		"typescript": "^6.0.0"
+		"typescript": "^7.0.0"
 	},
 	"dependencies": {
 		"@streamparser/json-node": "^0.0.22",
