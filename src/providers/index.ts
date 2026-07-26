@@ -11,6 +11,7 @@ import * as chatgpt from "./chatgpt";
 import * as claude from "./claude";
 import * as claudeCode from "./claude-code";
 import * as codexCli from "./codex-cli";
+import * as gemini from "./gemini";
 import * as grok from "./grok";
 
 export interface DownloadOptions {
@@ -29,6 +30,9 @@ export async function downloadJsonFromUrl(
 			break;
 		case "claude":
 			cacheValue = await claude.downloadJsonFromUrl(url, options);
+			break;
+		case "gemini":
+			cacheValue = await gemini.downloadJsonFromUrl(url, options);
 			break;
 		case "grok":
 			cacheValue = await grok.downloadJsonFromUrl(url);
@@ -64,6 +68,7 @@ export function renderMarkdownFromJson(input: unknown) {
 				"claude",
 				"claude-code",
 				"codex-cli",
+				"gemini",
 				"grok",
 			]),
 			json: v.unknown(),
@@ -81,6 +86,8 @@ export function renderMarkdownFromJson(input: unknown) {
 			return claudeCode.renderMarkdownFromJson(json);
 		case "codex-cli":
 			return codexCli.renderMarkdownFromJson(json);
+		case "gemini":
+			return gemini.renderMarkdownFromJson(json);
 		case "grok":
 			return grok.renderMarkdownFromJson(json);
 	}
@@ -96,6 +103,8 @@ export async function renderMarkdownFromUrl(
 			return await chatgpt.renderMarkdownFromUrl(url);
 		case "claude":
 			return await claude.renderMarkdownFromUrl(url, options);
+		case "gemini":
+			return await gemini.renderMarkdownFromUrl(url, options);
 		case "grok":
 			return await grok.renderMarkdownFromUrl(url);
 	}

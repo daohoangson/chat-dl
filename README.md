@@ -4,14 +4,17 @@ A command-line tool to download and convert AI chat conversations to markdown fo
 
 ## Features
 
-| Feature       | ChatGPT           | Claude | Grok                |
-| ------------- | ----------------- | ------ | ------------------- |
-| Code Blocks   | ✅                | ✅     | ✅                  |
-| Web Citations | ✅ (content refs) | ❌     | ✅ (tweets, web)    |
-| Artifacts     | ❌                | ✅     | ❌                  |
-| REPL          | ❌                | ✅     | ❌                  |
-| Reasoning     | ❌                | ❌     | ✅ (thinking trace) |
-| Enterprise    | ✅                | ❌     | ❌                  |
+| Feature       | ChatGPT           | Claude | Gemini | Grok                |
+| ------------- | ----------------- | ------ | ------ | ------------------- |
+| Code Blocks   | ✅                | ✅     | ✅     | ✅                  |
+| Web Citations | ✅ (content refs) | ❌     | ❌     | ✅ (tweets, web)    |
+| Artifacts     | ❌                | ✅     | ❌     | ❌                  |
+| REPL          | ❌                | ✅     | ❌     | ❌                  |
+| Reasoning     | ❌                | ❌     | ❌     | ✅ (thinking trace) |
+| Enterprise    | ✅                | ❌     | ❌     | ❌                  |
+
+Gemini accepts both the `share.gemini.google` short link and the
+`gemini.google.com/share/<id>` link it redirects to.
 
 ## Usage
 
@@ -39,6 +42,9 @@ The CLI supports four main commands:
 ```bash
 # Basic usage - outputs to console
 npx chat-dl https://chatgpt.com/share/feacac46-4201-48c5-9fb6-e3109475c8c8
+
+# Gemini shared conversation
+npx chat-dl https://share.gemini.google/3klxEXHcOBOl
 
 # Two-step process with intermediate JSON
 npx chat-dl url2json --output chat.json https://x.com/i/grok/share/ntS9ACoPKa2XcPwFnFYT2uUiL

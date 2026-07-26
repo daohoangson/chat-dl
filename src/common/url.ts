@@ -3,10 +3,11 @@ export type Provider =
 	| "chatgpt"
 	| "claude"
 	| "claude-code"
-	| "codex-cli";
+	| "codex-cli"
+	| "gemini";
 
 export function getProviderByUrl(url: string): Provider | undefined {
-	const hostname = new URL(url).hostname;
+	const { hostname, pathname } = new URL(url);
 	switch (hostname) {
 		case "chatgpt.com":
 			if (url.includes("://chatgpt.com/share/")) {
@@ -16,6 +17,17 @@ export function getProviderByUrl(url: string): Provider | undefined {
 		case "claude.ai":
 			if (url.includes("://claude.ai/share/")) {
 				return "claude";
+			}
+			break;
+		case "gemini.google.com":
+			if (url.includes("://gemini.google.com/share/")) {
+				return "gemini";
+			}
+			break;
+		case "share.gemini.google":
+			// short links that redirect to gemini.google.com/share/<id>
+			if (pathname.length > 1) {
+				return "gemini";
 			}
 			break;
 		case "x.com":

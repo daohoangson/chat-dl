@@ -56,6 +56,77 @@ function getEnv(name: string) {
 	return process.env[name];
 }
 
+export interface WaitForCdpResponseBodyOptions {
+	description: string;
+	timeout?: number;
+	timeoutError?: () => Error;
+}
+
+/**
+ * Resolves with the body of the first GET response whose URL matches `predicate`.
+ * Start waiting before navigating so early responses are not missed.
+ */
+export function waitForCdpResponseBody(
+	page: CdpPage,
+	predicate: (url: string) => boolean,
+	options: WaitForCdpResponseBodyOptions,
+): Promise<string> {
+	const { client, sessionId } = page;
+	const { description, timeout: timeoutMs = 300_000, timeoutError } = options;
+	const matchedRequestIds = new Set<string>();
+
+	return new Promise((resolve, reject) => {
+		let done = false;
+
+		const settle = <T>(fn: (value: T) => void, value: T): void => {
+			if (done) return;
+			done = true;
+			clearTimeout(timeout);
+			fn(value);
+		};
+
+		const timeout = setTimeout(() => {
+			settle(
+				reject,
+				timeoutError?.() ?? new Error(`Timed out waiting for ${description}`),
+			);
+		}, timeoutMs);
+
+		client.on("Network.responseReceived", (params, eventSessionId) => {
+			if (eventSessionId !== sessionId) return;
+			if (!predicate(params.response.url)) return;
+
+			matchedRequestIds.add(params.requestId);
+		});
+
+		client.on("Network.loadingFinished", async (params, eventSessionId) => {
+			if (eventSessionId !== sessionId) return;
+			if (!matchedRequestIds.has(params.requestId)) return;
+
+			try {
+				const { body, base64Encoded } = await client.send(
+					"Network.getResponseBody",
+					{ requestId: params.requestId },
+					sessionId,
+				);
+				settle(
+					resolve,
+					base64Encoded ? Buffer.from(body, "base64").toString("utf8") : body,
+				);
+			} catch (error) {
+				settle(reject, error);
+			}
+		});
+
+		client.on("Network.loadingFailed", (params, eventSessionId) => {
+			if (eventSessionId !== sessionId) return;
+			if (!matchedRequestIds.has(params.requestId)) return;
+
+			settle(reject, new Error(`${description} failed: ${params.errorText}`));
+		});
+	});
+}
+
 export async function newCdpPage<T>(fn: (page: CdpPage) => Promise<T>) {
 	const client = await CDP({
 		target: await getStableChromeBrowserWSEndpoint(),
