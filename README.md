@@ -89,3 +89,20 @@ npm run verify:claude-jsonl
 The script checks the latest 100 `.jsonl` files under `~/.claude/projects` by default.
 You can override the source and count with `CLAUDE_PROJECTS_DIR` and
 `CLAUDE_JSONL_LIMIT`.
+
+To check the URL providers against a list of known shared conversations:
+
+```bash
+npm run verify:urls
+```
+
+Each fixture records the heading count its conversation should render, so a
+provider that starts dropping turns fails instead of quietly returning less.
+The run bypasses the download cache, forces headless Chrome, and exits non-zero
+on any divergence. Pass provider names to narrow it (`npm run verify:urls -- gemini`),
+`--cached` to reuse downloads, and `--blocked` to also attempt fixtures that
+bot protection rejects in headless Chrome.
+
+Fixtures recorded as `broken` or `blocked` document providers that are already
+failing: they do not fail the run, but they are reported as `FIXED?` if they
+start working, so the list stays honest.
