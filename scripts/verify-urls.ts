@@ -49,10 +49,9 @@ const fixtures: Fixture[] = [
 	{
 		url: "https://x.com/i/grok/share/akO8vLhNg8etiOf15MCD1IHhN",
 		provider: "grok",
-		headings: 0,
-		minBytes: 0,
-		expect: "broken",
-		note: "post_ids_results entries lost their result key, schema rejects them",
+		headings: 16,
+		minBytes: 12_000,
+		expect: "pass",
 	},
 ];
 

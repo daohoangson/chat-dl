@@ -47,10 +47,22 @@ export function renderFromItems(items: Item[]): string {
 						i + 1
 					} by [@${name}](https://x.com/${user_id_str}/status/${id_str})\n\n${full_text}`;
 				};
+				// X no longer hydrates every referenced post: author and text are
+				// unavailable, only the id survives, so link to it instead
+				const getReference = (i: number, restId: string) =>
+					`#### Post #${
+						i + 1
+					}: [x.com/i/status/${restId}](https://x.com/i/status/${restId}) (not available)`;
 				for (let i = 0; i < postIdsResults.length; i++) {
-					const { result } = postIdsResults[i] ?? {};
-					if (typeof result === "undefined") continue;
+					const postIdResult = postIdsResults[i];
+					if (typeof postIdResult === "undefined") continue;
 
+					if ("rest_id" in postIdResult) {
+						markdown.push(getReference(i, postIdResult.rest_id));
+						continue;
+					}
+
+					const { result } = postIdResult;
 					switch (result.__typename) {
 						case "Tweet":
 							markdown.push(getTweet(i, result));

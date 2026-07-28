@@ -40,6 +40,26 @@ const agentResultTweetWithVisibilityResultsSchema = v.object({
 	}),
 });
 
+const postIdResultHydratedSchema = v.object({
+	result: v.variant("__typename", [
+		agentResultTweetSchema,
+		agentResultTweetWithVisibilityResultsSchema,
+	]),
+});
+
+// X now returns a bare tweet id for most referenced posts instead of hydrating
+// them, so author and text are no longer available for these entries
+const postIdResultReferenceSchema = v.object({
+	rest_id: v.string(),
+});
+
+const postIdResultSchema = v.union([
+	postIdResultHydratedSchema,
+	postIdResultReferenceSchema,
+]);
+
+export type PostIdResult = v.InferOutput<typeof postIdResultSchema>;
+
 const agentItemSchema = v.object({
 	sender: v.literal("Agent"),
 	message: v.string(),
@@ -66,16 +86,7 @@ const agentItemSchema = v.object({
 			}),
 		),
 	),
-	post_ids_results: v.optional(
-		v.array(
-			v.object({
-				result: v.variant("__typename", [
-					agentResultTweetSchema,
-					agentResultTweetWithVisibilityResultsSchema,
-				]),
-			}),
-		),
-	),
+	post_ids_results: v.optional(v.array(postIdResultSchema)),
 	thinking_trace: v.optional(v.string()),
 });
 
