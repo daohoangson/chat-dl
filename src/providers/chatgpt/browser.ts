@@ -19,50 +19,52 @@ function decompressString(str: string) {
 	return decompressed.toString("utf8");
 }
 
+// The share route loads the conversation through React Router, which leaves the
+// decoded payload on the client. Reading it keeps the original markdown, which
+// the rendered DOM no longer has, and returns every message: the DOM only holds
+// the handful of turns currently mounted.
 function extractChatGPT() {
-	const extractRecursively = (f1s: unknown[]): unknown[] | undefined => {
-		for (const f1 of f1s) {
-			if (typeof f1 !== "object" || f1 === null) continue;
-			// biome-ignore lint/suspicious/noExplicitAny: props any
-			const { allMessages: f1Messages, children } = (f1 as { props: any })
-				.props;
+	// biome-ignore lint/suspicious/noExplicitAny: router context any
+	const context = (window as any).__reactRouterContext;
+	const loaderData = context?.state?.loaderData ?? {};
 
-			// success 🎉
-			if (Array.isArray(f1Messages)) return f1Messages;
+	let allMessages: unknown[] = [];
+	// the route key embeds the share path, so look for the payload instead
+	for (const route of Object.values(loaderData)) {
+		// biome-ignore lint/suspicious/noExplicitAny: loader data any
+		const conversation = (route as any)?.serverResponse?.data
+			?.linear_conversation;
+		if (!Array.isArray(conversation)) continue;
 
-			if (!children) continue;
-			const f2s = Array.isArray(children) ? children : [children];
-			const f2Messages = extractRecursively(f2s);
-			if ((f2Messages?.length ?? 0) > 0) return f2Messages;
-		}
+		// success 🎉
+		allMessages = conversation
+			// biome-ignore lint/suspicious/noExplicitAny: node any
+			.map((node: any) => node?.message)
+			.filter((message: unknown) => typeof message === "object");
+		break;
+	}
 
-		return;
-	};
-
-	const allMessages: unknown[] = [];
-	const extractFromReact = (dom: HTMLElement): void => {
-		const prefix = "__reactFiber$";
-		type Key = keyof typeof dom | undefined;
-		const key = Object.keys(dom).find((k) => k.startsWith(prefix)) as Key;
-		if (key) {
-			// biome-ignore lint/suspicious/noExplicitAny: fiber any
-			const fiber = dom[key] as any;
-			const messages = extractRecursively(fiber.memoizedProps.children);
-			if (Array.isArray(messages)) allMessages.push(...messages);
-		}
-	};
-
-	const articles = [];
-	articles.push(...document.getElementsByTagName("article"));
-	articles.forEach(extractFromReact);
-
+	// the enterprise fallback rewrites this line, keep it the last statement
 	return allMessages;
+}
+
+function hasChatGPTConversation() {
+	// biome-ignore lint/suspicious/noExplicitAny: router context any
+	const context = (window as any).__reactRouterContext;
+	const loaderData = context?.state?.loaderData ?? {};
+
+	return Object.values(loaderData).some((route) =>
+		// biome-ignore lint/suspicious/noExplicitAny: loader data any
+		Array.isArray((route as any)?.serverResponse?.data?.linear_conversation),
+	);
 }
 
 function waitForHuman(url: string): Promise<unknown[] | undefined> {
 	return new Promise((resolve) => {
 		if (!url.includes("://chatgpt.com/share/e/")) {
-			return undefined;
+			// settle, or the caller waits on a promise nobody will ever resolve
+			resolve(undefined);
+			return;
 		}
 
 		let script = extractChatGPT.toString();
@@ -115,9 +117,11 @@ function waitForHuman(url: string): Promise<unknown[] | undefined> {
 export async function downloadFromUrl(url: string): Promise<unknown[]> {
 	try {
 		return await newBrowserPage(async (page) => {
-			await page.goto(url, { waitUntil: "networkidle0" });
+			// the share page keeps retrying API calls it is not allowed to make, so
+			// waiting for network idle times out: wait for the payload itself
+			await page.goto(url, { waitUntil: "domcontentloaded" });
 
-			await page.waitForSelector("article", { timeout: 3_000 });
+			await page.waitForFunction(hasChatGPTConversation, { timeout: 30_000 });
 
 			// https://github.com/evanw/esbuild/issues/2605
 			await page.evaluate("window.__name = (fn) => fn");

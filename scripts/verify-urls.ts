@@ -19,10 +19,9 @@ const fixtures: Fixture[] = [
 	{
 		url: "https://chatgpt.com/share/feacac46-4201-48c5-9fb6-e3109475c8c8",
 		provider: "chatgpt",
-		headings: 0,
-		minBytes: 0,
-		expect: "broken",
-		note: "share page renders no <article>, extraction finds nothing and never settles",
+		headings: 4,
+		minBytes: 1_600,
+		expect: "pass",
 	},
 	{
 		url: "https://claude.ai/share/d205d79c-ee72-4c32-9e89-b0328e6747c1",
