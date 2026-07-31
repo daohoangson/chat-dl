@@ -6,3 +6,6 @@ node_modules
 
 # tsup
 dist
+
+# Generated OpenCode session exports
+opencode-transcripts/

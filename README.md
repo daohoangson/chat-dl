@@ -36,6 +36,7 @@ The CLI supports four main commands:
 - `url2json`: Download chat data from a URL or parse a local chat file as JSON
 - `json2md`: Convert JSON to markdown
 - `dir2md`: Recursively convert supported local chat files in a directory to markdown
+- `opencode2md`: Convert sessions from OpenCode's local SQLite database to markdown
 
 ### Examples
 
@@ -52,6 +53,12 @@ cat chat.json | npx chat-dl json2md --output chat.md
 
 # Convert local Claude Code JSONL transcripts
 npx chat-dl dir2md ~/.claude/projects --output ./claude-transcripts
+
+# Export every OpenCode session (grouped as <sanitized-full-path>/<YYYY-MM-DD>/<session-id>.md)
+npx chat-dl opencode2md --all --output ./opencode-transcripts
+
+# Export one OpenCode session
+npx chat-dl opencode2md ses_... --output chat.md
 ```
 
 ### Protected shared links
