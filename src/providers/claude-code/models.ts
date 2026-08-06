@@ -320,6 +320,14 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("plan_mode"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("plan_mode_exit"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("queued_command"),
 		...attachmentPayloadFields,
 	}),
@@ -401,6 +409,7 @@ const frameLinkLineSchema = v.looseObject({
 export type FrameLinkLine = v.InferOutput<typeof frameLinkLineSchema>;
 
 const skippedJsonlLineSchema = v.variant("type", [
+	v.looseObject({ type: v.literal("agent-name") }),
 	v.looseObject({ type: v.literal("bridge-session") }),
 	v.looseObject({ type: v.literal("file-history-snapshot") }),
 	v.looseObject({ type: v.literal("last-prompt") }),
