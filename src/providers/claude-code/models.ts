@@ -256,6 +256,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("auto_mode_exit"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("command_permissions"),
 		...attachmentPayloadFields,
 	}),
