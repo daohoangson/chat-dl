@@ -222,6 +222,7 @@ const eventMsgPayloadSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("patch_apply_end") }),
 	v.looseObject({ type: v.literal("task_complete") }),
 	v.looseObject({ type: v.literal("task_started") }),
+	v.looseObject({ type: v.literal("thread_goal_updated") }),
 	v.looseObject({ type: v.literal("thread_settings_applied") }),
 	v.looseObject({ type: v.literal("thread_name_updated") }),
 	v.looseObject({ type: v.literal("thread_rolled_back") }),
