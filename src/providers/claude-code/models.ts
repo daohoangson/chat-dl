@@ -348,6 +348,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("total_tokens_reminder"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("ultra_effort_enter"),
 		...attachmentPayloadFields,
 	}),
