@@ -1,0 +1,23 @@
+src/providers/codex-cli/models.ts
+  ba2cba02f6948591 225
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "99cb2b7b62ca8cb9f1c03884db8a5881ad4e81cb",
+  "prompts": {
+    "ba2cba02f6948591": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "dd7764de-a793-48c2-9a75-ac26a29e92bc",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
