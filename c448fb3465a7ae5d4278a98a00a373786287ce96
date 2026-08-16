@@ -1,0 +1,27 @@
+src/commands/url2json.ts
+  bdc8fcd5781d418e 33
+src/common/url.ts
+  bdc8fcd5781d418e 59-61
+src/commands/url2md.ts
+  bdc8fcd5781d418e 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "c448fb3465a7ae5d4278a98a00a373786287ce96",
+  "prompts": {
+    "bdc8fcd5781d418e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed518513-7b78-4b51-9044-82d61bbfa2cd",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 9,
+      "total_deletions": 3,
+      "accepted_lines": 5,
+      "overriden_lines": 0
+    }
+  }
+}
