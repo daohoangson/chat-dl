@@ -1,0 +1,39 @@
+README.md
+  bdc8fcd5781d418e 57-59
+src/providers/kiro/models.ts
+  bdc8fcd5781d418e 1-273
+src/common/url.ts
+  bdc8fcd5781d418e 7,46-50
+src/providers/index.ts
+  bdc8fcd5781d418e 16,59-62,78,95-96,130-131
+src/commands/dir2md.ts
+  bdc8fcd5781d418e 33-34
+scripts/verify-kiro-jsonl.ts
+  bdc8fcd5781d418e 1-98
+src/providers/kiro/markdown.ts
+  bdc8fcd5781d418e 1-212,214-217,219-287,289-296,298-314,316-323,325-390,392-455,457-459,461-496,498-549,551-569,571-615
+src/providers/kiro/index.ts
+  bdc8fcd5781d418e 1-59
+package.json
+  bdc8fcd5781d418e 17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "5e639fdfd6e96b00647841d7c1964d0866da9811",
+  "prompts": {
+    "bdc8fcd5781d418e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed518513-7b78-4b51-9044-82d61bbfa2cd",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 1097,
+      "total_deletions": 76,
+      "accepted_lines": 1056,
+      "overriden_lines": 12
+    }
+  }
+}
