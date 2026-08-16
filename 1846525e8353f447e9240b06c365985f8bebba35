@@ -1,0 +1,25 @@
+src/providers/claude-code/markdown.ts
+  bdc8fcd5781d418e 61,99,659,670,716,722,726,732,734,814-826,833-844,847,918-921,923-925,927,951,957-958
+src/providers/codex-cli/markdown.ts
+  bdc8fcd5781d418e 38,101,418,421-426,430,432,441,444,457,459,658-661,663-667,694,697-700,706,709-712
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "1846525e8353f447e9240b06c365985f8bebba35",
+  "prompts": {
+    "bdc8fcd5781d418e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed518513-7b78-4b51-9044-82d61bbfa2cd",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 82,
+      "total_deletions": 21,
+      "accepted_lines": 82,
+      "overriden_lines": 0
+    }
+  }
+}
