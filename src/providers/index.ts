@@ -1,7 +1,8 @@
+import { closeSync, openSync, readSync, statSync } from "node:fs";
 import {
 	type CacheValue,
 	type Provider,
-	getProviderByPath,
+	getProviderByPath as getProviderByLocation,
 	getProviderByUrl,
 	isLocalPath,
 	parseSchemaOrThrow,
@@ -17,6 +18,77 @@ import * as kiro from "./kiro";
 
 export interface DownloadOptions {
 	existingChrome?: boolean;
+}
+
+// Generous margin over observed first-line sizes (claude-code's largest seen
+// is ~60KB, from an inlined system-instruction); a first line beyond this
+// falls back to "can't determine" rather than reading the whole file.
+const CONTENT_SNIFF_BYTES = 262_144;
+
+// Each provider's JSONL lines have a distinct top-level shape, verified
+// against every local session file:
+//   claude-code: flat, top-level "type", no "payload"
+//   codex-cli:   wrapped, top-level "type" AND top-level "payload"
+//   kiro:        wrapped, top-level "payload" only ("type" lives inside it)
+// This lets a relocated/copied .jsonl file still self-identify by content
+// when its path no longer matches any provider's known directory.
+function detectProviderByContent(path: string): Provider | undefined {
+	const firstLine = readFirstLine(path);
+	if (!firstLine) return undefined;
+
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(firstLine);
+	} catch {
+		return undefined;
+	}
+	if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+		return undefined;
+	}
+
+	const hasType = "type" in parsed;
+	const hasPayload = "payload" in parsed;
+	if (hasPayload && hasType) return "codex-cli";
+	if (hasPayload) return "kiro";
+	if (hasType) return "claude-code";
+	return undefined;
+}
+
+function readFirstLine(path: string): string | null {
+	let fd: number;
+	try {
+		fd = openSync(path, "r");
+	} catch {
+		return null;
+	}
+
+	try {
+		const size = Math.min(statSync(path).size, CONTENT_SNIFF_BYTES);
+		if (size === 0) return null;
+
+		const buffer = Buffer.alloc(size);
+		const bytesRead = readSync(fd, buffer, 0, size, 0);
+		const chunk = buffer.toString("utf-8", 0, bytesRead);
+		const newlineIndex = chunk.indexOf("\n");
+		const firstLine =
+			newlineIndex === -1 ? chunk : chunk.slice(0, newlineIndex);
+		return firstLine.trim() || null;
+	} catch {
+		return null;
+	} finally {
+		closeSync(fd);
+	}
+}
+
+// Path-based detection first (cheap, no I/O); falls back to sniffing the
+// file's own first line only for .jsonl files that didn't match a known
+// provider directory, so a relocated/copied session file still resolves
+// correctly without opening every unrelated file in a directory walk.
+export function getProviderByPath(path: string): Provider | undefined {
+	const byLocation = getProviderByLocation(path);
+	if (byLocation) return byLocation;
+	if (!path.endsWith(".jsonl")) return undefined;
+	return detectProviderByContent(path);
 }
 
 export async function downloadJsonFromUrl(
@@ -150,4 +222,4 @@ export function shouldSkipSubagentDirectory(name: string): boolean {
 	return claudeCode.isSubagentDirectory(name) || kiro.isSubagentDirectory(name);
 }
 
-export { getProviderByPath, isLocalPath };
+export { isLocalPath };
