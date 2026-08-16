@@ -7,6 +7,8 @@ import type {
 	OpenCodeSession,
 } from "./models";
 
+export type { OpenCodeSession } from "./models";
+
 type Row = OpenCodeData & {
 	agent?: unknown;
 	cost?: unknown;

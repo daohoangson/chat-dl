@@ -57,8 +57,11 @@ npx chat-dl dir2md ~/.claude/projects --output ./claude-transcripts
 # Convert local Kiro IDE session transcripts
 npx chat-dl dir2md ~/.kiro/sessions --output ./kiro-transcripts
 
-# Export every OpenCode session (grouped as <sanitized-full-path>/<YYYY-MM-DD>/<session-id>.md)
-npx chat-dl opencode2md --all --output ./opencode-transcripts
+# Export every top-level OpenCode session (grouped as <sanitized-full-path>/<YYYY-MM-DD>/<session-id>.md)
+npx chat-dl opencode2md --output ./opencode-transcripts
+
+# Same, filtered to sessions updated this month whose directory/title matches
+npx chat-dl opencode2md --since 2026-08-01 --match my-repo --output ./opencode-transcripts
 
 # Export one OpenCode session
 npx chat-dl opencode2md ses_... --output chat.md
