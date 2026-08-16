@@ -1,0 +1,27 @@
+README.md
+  bdc8fcd5781d418e 60-64
+src/providers/opencode/index.ts
+  bdc8fcd5781d418e 10-11
+src/commands/opencode2md.ts
+  bdc8fcd5781d418e 4,15-18,22,25,28,32-36,39,51-93,95-100,102-104,109-112,114-119,121-122,124-127,168,179,182-200
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "0599167bd741de818d398361208c8fb9bc387b25",
+  "prompts": {
+    "bdc8fcd5781d418e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed518513-7b78-4b51-9044-82d61bbfa2cd",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 120,
+      "total_deletions": 22,
+      "accepted_lines": 112,
+      "overriden_lines": 0
+    }
+  }
+}
