@@ -1,0 +1,23 @@
+src/providers/index.ts
+  bdc8fcd5781d418e 1,5,23-93,225
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "c3b18971d5919f870da92e716dd23dc848f10dd4",
+  "prompts": {
+    "bdc8fcd5781d418e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed518513-7b78-4b51-9044-82d61bbfa2cd",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 74,
+      "total_deletions": 2,
+      "accepted_lines": 74,
+      "overriden_lines": 0
+    }
+  }
+}
