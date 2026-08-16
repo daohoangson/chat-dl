@@ -55,7 +55,11 @@ export function getProviderByPath(path: string): Provider | undefined {
 	) {
 		return "codex-cli";
 	}
-	if (path.endsWith(".jsonl")) {
+	if (
+		path.endsWith(".jsonl") &&
+		(path.includes("/.claude/projects/") ||
+			path.includes("\\.claude\\projects\\"))
+	) {
 		return "claude-code";
 	}
 	return;

@@ -34,7 +34,8 @@ export const url2md: CommandModule<unknown, Url2mdArgs> = {
 		return yargs
 			.positional("url", {
 				type: "string",
-				description: "URL or local file path (e.g., .jsonl for Claude Code)",
+				description:
+					"URL or local session file (e.g. .jsonl under ~/.claude/projects, ~/.codex/sessions, or ~/.kiro/sessions)",
 				demandOption: true,
 			})
 			.option("output", {

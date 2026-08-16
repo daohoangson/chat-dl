@@ -29,7 +29,8 @@ export const url2json: CommandModule<unknown, Url2jsonArgs> = {
 		return yargs
 			.positional("url", {
 				type: "string",
-				description: "URL or local file path (e.g., .jsonl for Claude Code)",
+				description:
+					"URL or local session file (e.g. .jsonl under ~/.claude/projects, ~/.codex/sessions, or ~/.kiro/sessions)",
 				demandOption: true,
 			})
 			.option("output", {
