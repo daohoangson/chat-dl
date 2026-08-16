@@ -1,0 +1,29 @@
+src/providers/claude-code/index.ts
+  bdc8fcd5781d418e 7-13
+src/providers/kiro/index.ts
+  bdc8fcd5781d418e 7-12
+src/commands/dir2md.ts
+  bdc8fcd5781d418e 6,19,30,36,42,75,79,91
+src/providers/index.ts
+  bdc8fcd5781d418e 144-152
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "fd84394ea6d8cd5dffc5bdb19c65b8dc1f9fd565",
+  "prompts": {
+    "bdc8fcd5781d418e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed518513-7b78-4b51-9044-82d61bbfa2cd",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 32,
+      "total_deletions": 5,
+      "accepted_lines": 30,
+      "overriden_lines": 0
+    }
+  }
+}
