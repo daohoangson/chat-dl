@@ -35,6 +35,7 @@ interface RenderContext {
 	usage: UsageStats;
 	usageCost: number | null;
 	usageModelLabels: string[];
+	usageUnpricedModels: string[];
 	includedSubagents: number;
 }
 
@@ -97,6 +98,7 @@ export function renderFromLines(
 		usage: usage.stats,
 		usageCost: usage.cost,
 		usageModelLabels: usage.modelLabels,
+		usageUnpricedModels: usage.unpricedModels,
 		includedSubagents: subagentSessions.length,
 	};
 
@@ -413,13 +415,21 @@ interface UsageAggregation {
 	stats: UsageStats;
 	cost: number | null;
 	modelLabels: string[];
+	unpricedModels: string[];
 }
 
+// Cost completeness is tracked per model, not as one global flag: a single
+// session (or subagent) on an unrecognized model — e.g. an internal
+// auto-review pass — used to null out the entire estimate even when the vast
+// majority of usage was on a well-priced model. Now that usage is excluded
+// from the total individually, with the excluded model(s) surfaced as a
+// caveat instead.
 function collectUsage(lineGroups: CodexCliLine[][]): UsageAggregation {
 	const stats = emptyUsageStats();
 	const modelLabels = new Set<string>();
+	const unpricedModels = new Set<string>();
 	let cost = 0;
-	let costComplete = true;
+	let hasPricedUsage = false;
 
 	for (const lines of lineGroups) {
 		const session = collectSessionUsage(lines);
@@ -428,9 +438,10 @@ function collectUsage(lineGroups: CodexCliLine[][]): UsageAggregation {
 
 		const pricing = getPricing(session.model);
 		if (!pricing) {
-			costComplete = false;
+			unpricedModels.add(session.model ?? "unknown model");
 			continue;
 		}
+		hasPricedUsage = true;
 		modelLabels.add(pricing.modelLabel);
 		const billableUsages =
 			session.requestUsages.length > 0
@@ -443,8 +454,9 @@ function collectUsage(lineGroups: CodexCliLine[][]): UsageAggregation {
 
 	return {
 		stats,
-		cost: costComplete ? cost : null,
+		cost: hasPricedUsage ? cost : null,
 		modelLabels: [...modelLabels],
+		unpricedModels: [...unpricedModels],
 	};
 }
 
@@ -643,8 +655,16 @@ function renderUsageSummary(ctx: RenderContext): void {
 			ctx.usageModelLabels.length === 1
 				? ctx.usageModelLabels[0]
 				: "mixed models";
+		const caveat =
+			ctx.usageUnpricedModels.length > 0
+				? ` — excludes usage on ${ctx.usageUnpricedModels.join(", ")}`
+				: "";
 		lines.push(
-			`- **Estimated cost:** $${ctx.usageCost.toFixed(2)} (${modelLabel})`,
+			`- **Estimated cost:** $${ctx.usageCost.toFixed(2)} (${modelLabel}${caveat})`,
+		);
+	} else if (ctx.usageUnpricedModels.length > 0) {
+		lines.push(
+			`- **Estimated cost:** unavailable (unpriced model: ${ctx.usageUnpricedModels.join(", ")})`,
 		);
 	}
 
@@ -671,23 +691,25 @@ function getPricing(model: string | null): PricingInfo | null {
 	};
 
 	if (normalized.startsWith("gpt-5.6-terra")) {
+		// Updated 2026-08-16 for the 2026-07-30 OpenAI price cut.
 		return {
 			modelLabel: "gpt-5.6-terra",
-			input: 2.5,
-			cacheRead: 0.25,
-			cacheWrite: 3.125,
-			output: 15,
+			input: 2,
+			cacheRead: 0.2,
+			cacheWrite: 2.5,
+			output: 12,
 			...gpt56LongContext,
 		};
 	}
 
 	if (normalized.startsWith("gpt-5.6-luna")) {
+		// Updated 2026-08-16 for the 2026-07-30 OpenAI price cut.
 		return {
 			modelLabel: "gpt-5.6-luna",
-			input: 1,
-			cacheRead: 0.1,
-			cacheWrite: 1.25,
-			output: 6,
+			input: 0.2,
+			cacheRead: 0.02,
+			cacheWrite: 0.25,
+			output: 1.2,
 			...gpt56LongContext,
 		};
 	}

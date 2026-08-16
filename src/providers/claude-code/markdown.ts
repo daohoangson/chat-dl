@@ -58,6 +58,7 @@ interface RenderContext {
 	usage: UsageStats;
 	usageCost: number | null;
 	usageModelLabels: string[];
+	usageUnpricedModels: string[];
 	includedSubagents: number;
 	cwd: string | null;
 	homeDir: string;
@@ -95,6 +96,7 @@ export function renderFromLines(
 		usage: usage.stats,
 		usageCost: usage.cost,
 		usageModelLabels: usage.modelLabels,
+		usageUnpricedModels: usage.unpricedModels,
 		includedSubagents: options?.usageLineGroups?.length ?? 0,
 		cwd,
 		homeDir: homedir(),
@@ -654,6 +656,7 @@ interface UsageAggregation {
 	stats: UsageStats;
 	cost: number | null;
 	modelLabels: string[];
+	unpricedModels: string[];
 }
 
 function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
@@ -664,8 +667,8 @@ function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
 		cacheReadTokens: 0,
 	};
 	const modelLabels = new Set<string>();
+	const unpricedModels = new Set<string>();
 	let cost = 0;
-	let costComplete = true;
 
 	// Bill each assistant message exactly once, keyed on message.id.
 	//
@@ -710,22 +713,25 @@ function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
 		}
 	}
 
+	let hasPricedUsage = false;
 	for (const { usage, model } of [...bestById.values(), ...anonymous]) {
 		accumulateUsage(stats, usage);
 		if (!hasBillableUsage(usage)) continue;
 		const pricing = getPricing(model);
 		if (pricing) {
+			hasPricedUsage = true;
 			modelLabels.add(pricing.modelLabel);
 			cost += calculateUsageCost(usage, pricing);
 		} else {
-			costComplete = false;
+			unpricedModels.add(model ?? "unknown model");
 		}
 	}
 
 	return {
 		stats,
-		cost: costComplete ? cost : null,
+		cost: hasPricedUsage ? cost : null,
 		modelLabels: [...modelLabels],
+		unpricedModels: [...unpricedModels],
 	};
 }
 
@@ -780,7 +786,6 @@ function calculateUsageCost(usage: Usage, pricing: PricingInfo): number {
 
 // Pricing per million tokens.
 // Source: https://platform.claude.com/docs/en/about-claude/pricing
-// Sonnet 5 intentionally uses its published standard rate, not introductory pricing.
 const PRICING = {
 	fableAndMythos5: {
 		modelLabel: "claude-fable/mythos-5",
@@ -806,16 +811,40 @@ const PRICING = {
 		cacheWrite1h: 1.6,
 		cacheRead: 0.08,
 	},
-	sonnet4And5: {
-		modelLabel: "claude-sonnet-4/5",
+	// Sonnet 5's $2/$10 introductory price became permanent (the scheduled
+	// 2026-09-01 increase to $3/$15 was cancelled) — added 2026-08-16, verified
+	// against live Anthropic docs.
+	sonnet5: {
+		modelLabel: "claude-sonnet-5",
+		input: 2,
+		output: 10,
+		cacheWrite5m: 2.5,
+		cacheWrite1h: 4,
+		cacheRead: 0.2,
+	},
+	sonnet4Through46: {
+		modelLabel: "claude-sonnet-4/4.5/4.6",
 		input: 3,
 		output: 15,
 		cacheWrite5m: 3.75,
 		cacheWrite1h: 6,
 		cacheRead: 0.3,
 	},
+	// Added 2026-08-16: previously fell through to opus45Plus, which has the
+	// same standard rate but no fast-mode fields, so fast-mode Opus 5 usage
+	// was silently billed at the standard rate instead of the $10/$50 premium.
+	opus5: {
+		modelLabel: "claude-opus-5",
+		input: 5,
+		output: 25,
+		cacheWrite5m: 6.25,
+		cacheWrite1h: 10,
+		cacheRead: 0.5,
+		fastInput: 10,
+		fastOutput: 50,
+	},
 	opus45Plus: {
-		modelLabel: "claude-opus-4.5+",
+		modelLabel: "claude-opus-4.5/4.6",
 		input: 5,
 		output: 25,
 		cacheWrite5m: 6.25,
@@ -886,8 +915,16 @@ function renderUsageSummary(ctx: RenderContext): void {
 			ctx.usageModelLabels.length === 1
 				? ctx.usageModelLabels[0]
 				: "mixed models";
+		const caveat =
+			ctx.usageUnpricedModels.length > 0
+				? ` — excludes usage on ${ctx.usageUnpricedModels.join(", ")}`
+				: "";
 		lines.push(
-			`- **Estimated cost:** $${ctx.usageCost.toFixed(2)} (${modelLabel})`,
+			`- **Estimated cost:** $${ctx.usageCost.toFixed(2)} (${modelLabel}${caveat})`,
+		);
+	} else if (ctx.usageUnpricedModels.length > 0) {
+		lines.push(
+			`- **Estimated cost:** unavailable (unpriced model: ${ctx.usageUnpricedModels.join(", ")})`,
 		);
 	}
 
@@ -911,12 +948,14 @@ function getPricing(model: string | null): PricingInfo | null {
 	}
 	if (normalized.includes("opus-4-8")) return PRICING.opus48;
 	if (normalized.includes("opus-4-7")) return PRICING.opus47;
+	if (normalized.includes("opus-5")) return PRICING.opus5;
 	if (normalized.includes("opus")) return PRICING.opus45Plus;
 	if (normalized.includes("haiku-3-5") || normalized.includes("3-5-haiku")) {
 		return PRICING.haiku35;
 	}
 	if (normalized.includes("haiku")) return PRICING.haiku45;
-	if (normalized.includes("sonnet")) return PRICING.sonnet4And5;
+	if (normalized.includes("sonnet-5")) return PRICING.sonnet5;
+	if (normalized.includes("sonnet")) return PRICING.sonnet4Through46;
 	return null;
 }
 
