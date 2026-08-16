@@ -4,6 +4,13 @@ import { parseSchemaOrThrow } from "@/common";
 import { type RenderOptions, renderFromLines } from "./markdown";
 import { type JsonlLine, jsonlLineSchema } from "./models";
 
+// Sub-agent transcripts live in this dedicated subdirectory (see
+// renderMarkdownFromPath below), so a directory walker can exclude them by
+// name alone without inspecting file contents.
+export function isSubagentDirectory(name: string): boolean {
+	return name === "subagents";
+}
+
 export function parseJsonlFromPath(filePath: string): JsonlLine[] {
 	const content = readFileSync(filePath, "utf-8");
 	const lines = content.trim().split("\n");

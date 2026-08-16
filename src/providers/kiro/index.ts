@@ -4,6 +4,12 @@ import { parseSchemaOrThrow } from "@/common";
 import { type RenderOptions, renderFromLines } from "./markdown";
 import { type KiroLine, kiroLineSchema, kiroSessionMetaSchema } from "./models";
 
+// Sub-agent transcripts live in this dedicated subdirectory (sess_x/sub-executions/<id>.jsonl),
+// so a directory walker can exclude them by name alone without inspecting file contents.
+export function isSubagentDirectory(name: string): boolean {
+	return name === "sub-executions";
+}
+
 export function parseJsonlFromPath(filePath: string): KiroLine[] {
 	const content = readFileSync(filePath, "utf-8");
 	const lines = content.trim().split("\n");

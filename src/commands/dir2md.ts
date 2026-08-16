@@ -3,6 +3,7 @@ import { basename, dirname, extname, join, relative } from "node:path";
 import {
 	getProviderByPath,
 	renderMarkdownFromPath,
+	shouldSkipSubagentDirectory,
 	shouldSkipSubagentPath,
 } from "@/providers";
 import type { CommandModule } from "yargs";
@@ -15,6 +16,7 @@ interface Dir2mdArgs {
 interface ProcessResult {
 	processed: number;
 	skipped: number;
+	errored: number;
 }
 
 function processDirectory(
@@ -25,18 +27,19 @@ function processDirectory(
 	const entries = readdirSync(inputDir, { withFileTypes: true });
 	let processed = 0;
 	let skipped = 0;
+	let errored = 0;
 
 	for (const entry of entries) {
 		const inputPath = join(inputDir, entry.name);
 
 		if (entry.isDirectory()) {
-			// Skip subagents/sub-executions directories (rendered inline in the parent)
-			if (entry.name === "subagents" || entry.name === "sub-executions") {
+			if (shouldSkipSubagentDirectory(entry.name)) {
 				continue;
 			}
 			const subResult = processDirectory(inputPath, outputDir, baseInputDir);
 			processed += subResult.processed;
 			skipped += subResult.skipped;
+			errored += subResult.errored;
 			continue;
 		}
 
@@ -69,11 +72,11 @@ function processDirectory(
 			console.error(
 				`✗ ${relativePath}: ${error instanceof Error ? error.message : error}`,
 			);
-			skipped++;
+			errored++;
 		}
 	}
 
-	return { processed, skipped };
+	return { processed, skipped, errored };
 }
 
 async function handler(args: Dir2mdArgs) {
@@ -84,7 +87,9 @@ async function handler(args: Dir2mdArgs) {
 
 	const result = processDirectory(input, output, input);
 
-	console.log(`\nProcessed: ${result.processed}, Skipped: ${result.skipped}`);
+	console.log(
+		`\nProcessed: ${result.processed}, Skipped: ${result.skipped}, Errored: ${result.errored}`,
+	);
 }
 
 export const dir2md: CommandModule<unknown, Dir2mdArgs> = {

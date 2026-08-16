@@ -141,4 +141,13 @@ export function shouldSkipSubagentPath(path: string): boolean {
 	);
 }
 
+// Directories whose contents are sub-agent transcripts rendered inline by
+// their parent session (see each provider's own isSubagentDirectory), not
+// standalone sessions. Codex CLI has no equivalent: its subagent transcripts
+// are flat siblings of regular sessions, indistinguishable by path alone, so
+// they're excluded per-file via shouldSkipSubagentPath instead.
+export function shouldSkipSubagentDirectory(name: string): boolean {
+	return claudeCode.isSubagentDirectory(name) || kiro.isSubagentDirectory(name);
+}
+
 export { getProviderByPath, isLocalPath };
