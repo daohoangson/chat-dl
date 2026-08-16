@@ -30,8 +30,8 @@ function processDirectory(
 		const inputPath = join(inputDir, entry.name);
 
 		if (entry.isDirectory()) {
-			// Skip subagents directories (they are rendered inline in the parent)
-			if (entry.name === "subagents") {
+			// Skip subagents/sub-executions directories (rendered inline in the parent)
+			if (entry.name === "subagents" || entry.name === "sub-executions") {
 				continue;
 			}
 			const subResult = processDirectory(inputPath, outputDir, baseInputDir);

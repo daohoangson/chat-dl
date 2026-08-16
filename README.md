@@ -54,6 +54,9 @@ cat chat.json | npx chat-dl json2md --output chat.md
 # Convert local Claude Code JSONL transcripts
 npx chat-dl dir2md ~/.claude/projects --output ./claude-transcripts
 
+# Convert local Kiro IDE session transcripts
+npx chat-dl dir2md ~/.kiro/sessions --output ./kiro-transcripts
+
 # Export every OpenCode session (grouped as <sanitized-full-path>/<YYYY-MM-DD>/<session-id>.md)
 npx chat-dl opencode2md --all --output ./opencode-transcripts
 

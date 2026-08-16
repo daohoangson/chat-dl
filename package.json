@@ -14,6 +14,7 @@
 		"start": "tsx src/bin/chat-dl.ts",
 		"verify:claude-jsonl": "tsx scripts/verify-claude-jsonl.ts",
 		"verify:codex-jsonl": "tsx scripts/verify-codex-jsonl.ts",
+		"verify:kiro-jsonl": "tsx scripts/verify-kiro-jsonl.ts",
 		"verify:urls": "tsx scripts/verify-urls.ts",
 		"prebuild": "rm -rf dist",
 		"build": "npm run build:bin && npm run build:cjs",

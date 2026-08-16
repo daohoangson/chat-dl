@@ -4,6 +4,7 @@ export type Provider =
 	| "claude"
 	| "claude-code"
 	| "codex-cli"
+	| "kiro"
 	| "gemini";
 
 export function getProviderByUrl(url: string): Provider | undefined {
@@ -41,6 +42,12 @@ export function getProviderByUrl(url: string): Provider | undefined {
 }
 
 export function getProviderByPath(path: string): Provider | undefined {
+	if (
+		path.endsWith("messages.jsonl") &&
+		(path.includes("/.kiro/sessions/") || path.includes("\\.kiro\\sessions\\"))
+	) {
+		return "kiro";
+	}
 	if (
 		path.endsWith(".jsonl") &&
 		(path.includes("/.codex/sessions/") ||

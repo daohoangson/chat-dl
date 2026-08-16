@@ -13,6 +13,7 @@ import * as claudeCode from "./claude-code";
 import * as codexCli from "./codex-cli";
 import * as gemini from "./gemini";
 import * as grok from "./grok";
+import * as kiro from "./kiro";
 
 export interface DownloadOptions {
 	existingChrome?: boolean;
@@ -55,6 +56,10 @@ export function parseJsonFromPath(path: string) {
 			const lines = codexCli.parseJsonlFromPath(path);
 			return { provider, json: lines };
 		}
+		case "kiro": {
+			const lines = kiro.parseJsonlFromPath(path);
+			return { provider, json: lines };
+		}
 		default:
 			throw new Error(`Unsupported file type: ${path}`);
 	}
@@ -70,6 +75,7 @@ export function renderMarkdownFromJson(input: unknown) {
 				"codex-cli",
 				"gemini",
 				"grok",
+				"kiro",
 			]),
 			json: v.unknown(),
 		}),
@@ -86,6 +92,8 @@ export function renderMarkdownFromJson(input: unknown) {
 			return claudeCode.renderMarkdownFromJson(json);
 		case "codex-cli":
 			return codexCli.renderMarkdownFromJson(json);
+		case "kiro":
+			return kiro.renderMarkdownFromJson(json);
 		case "gemini":
 			return gemini.renderMarkdownFromJson(json);
 		case "grok":
@@ -119,6 +127,8 @@ export function renderMarkdownFromPath(path: string) {
 			return claudeCode.renderMarkdownFromPath(path);
 		case "codex-cli":
 			return codexCli.renderMarkdownFromPath(path);
+		case "kiro":
+			return kiro.renderMarkdownFromPath(path);
 		default:
 			throw new Error(`Unsupported file type: ${path}`);
 	}
