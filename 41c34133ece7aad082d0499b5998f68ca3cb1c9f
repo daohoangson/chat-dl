@@ -1,0 +1,25 @@
+package.json
+  3389dd1963482fcf 18
+scripts/verify-opencode.ts
+  3389dd1963482fcf 1-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "41c34133ece7aad082d0499b5998f68ca3cb1c9f",
+  "prompts": {
+    "3389dd1963482fcf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "406d1f43-d0bc-4144-a43a-64e668c07395",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 73,
+      "total_deletions": 0,
+      "accepted_lines": 73,
+      "overriden_lines": 0
+    }
+  }
+}
