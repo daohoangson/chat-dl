@@ -218,6 +218,7 @@ const eventMsgPayloadSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("error") }),
 	v.looseObject({ type: v.literal("exec_command_end") }),
 	v.looseObject({ type: v.literal("exited_review_mode") }),
+	v.looseObject({ type: v.literal("item_completed") }),
 	v.looseObject({ type: v.literal("mcp_tool_call_end") }),
 	v.looseObject({ type: v.literal("patch_apply_end") }),
 	v.looseObject({ type: v.literal("task_complete") }),
