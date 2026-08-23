@@ -1,0 +1,36 @@
+src/providers/claude-code/models.ts
+  3389dd1963482fcf 421
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "d62665836fae78accb52d6dc654e4cd5ad449f4f",
+  "prompts": {
+    "3389dd1963482fcf": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "406d1f43-d0bc-4144-a43a-64e668c07395",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    },
+    "bdc8fcd5781d418e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ed518513-7b78-4b51-9044-82d61bbfa2cd",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 336,
+      "total_deletions": 89,
+      "accepted_lines": 250,
+      "overriden_lines": 0
+    }
+  }
+}
