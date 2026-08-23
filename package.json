@@ -40,7 +40,7 @@
 		"typescript": "^6.0.0"
 	},
 	"dependencies": {
-		"@streamparser/json-node": "^0.0.22",
+		"@streamparser/json-node": "^0.0.23",
 		"chrome-remote-interface": "^0.34.0",
 		"file-system-cache": "^2.4.7",
 		"puppeteer": "^25.0.0",
