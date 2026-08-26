@@ -68,7 +68,12 @@ const toolReferenceContentSchema = v.looseObject({
 	tool_name: v.string(),
 });
 
-// Tool result content can be string, or array of text/image/tool_reference
+// Document content (e.g. PDF attachments)
+const documentContentSchema = v.looseObject({
+	type: v.literal("document"),
+});
+
+// Tool result content can be string, or array of text/image/tool_reference/document
 const toolResultInnerContentSchema = v.union([
 	v.string(),
 	v.array(
@@ -76,6 +81,7 @@ const toolResultInnerContentSchema = v.union([
 			textContentSchema,
 			imageContentSchema,
 			toolReferenceContentSchema,
+			documentContentSchema,
 		]),
 	),
 ]);
@@ -88,11 +94,6 @@ const toolResultContentSchema = v.object({
 });
 
 export type ToolResultContent = v.InferOutput<typeof toolResultContentSchema>;
-
-// Document content (e.g. PDF attachments)
-const documentContentSchema = v.looseObject({
-	type: v.literal("document"),
-});
 
 // User message content can be string or array with tool results
 const userContentSchema = v.union([
