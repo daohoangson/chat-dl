@@ -420,6 +420,7 @@ const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("agent-name") }),
 	v.looseObject({ type: v.literal("atis-latch") }),
 	v.looseObject({ type: v.literal("bridge-session") }),
+	v.looseObject({ type: v.literal("file-history-delta") }),
 	v.looseObject({ type: v.literal("file-history-snapshot") }),
 	v.looseObject({ type: v.literal("last-prompt") }),
 	v.looseObject({ type: v.literal("mode") }),
