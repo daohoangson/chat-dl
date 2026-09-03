@@ -512,6 +512,19 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 			}
 			return;
 		}
+		case "dynamic_skill": {
+			const names = (attachment.skillNames ?? []).filter(Boolean);
+			if (names.length > 0) {
+				const source = attachment.displayPath
+					? ` (from \`${maskPath(ctx, attachment.displayPath)}\`)`
+					: "";
+				pushEventBlock(
+					ctx,
+					`> **Dynamic skills loaded:** ${names.map((name) => `\`${name}\``).join(", ")}${source}`,
+				);
+			}
+			return;
+		}
 		case "pdf_reference": {
 			if (!attachment.filename) {
 				return;

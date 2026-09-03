@@ -230,6 +230,8 @@ const attachmentPayloadFields = {
 	pageCount: v.optional(v.number()),
 	fileSize: v.optional(v.number()),
 	data: v.optional(v.unknown()),
+	skillDir: v.optional(v.string()),
+	skillNames: v.optional(v.array(v.string())),
 	files: v.optional(
 		v.array(
 			v.looseObject({
@@ -298,6 +300,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("directory"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("dynamic_skill"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
