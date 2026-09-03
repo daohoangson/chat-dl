@@ -361,6 +361,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("remote_session_change"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("skill_listing"),
 		...attachmentPayloadFields,
 	}),
