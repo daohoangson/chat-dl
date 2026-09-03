@@ -529,6 +529,38 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 			);
 			return;
 		}
+		case "diagnostics": {
+			const lines = (attachment.files ?? [])
+				.map((file) => formatDiagnosticsFile(ctx, file))
+				.filter((line): line is string => Boolean(line));
+			if (lines.length > 0) {
+				pushEventBlock(
+					ctx,
+					["> **Diagnostics:**", ...lines.map((line) => `> - ${line}`)].join(
+						"\n",
+					),
+				);
+			}
+			return;
+		}
+		case "structured_output": {
+			if (attachment.data === undefined || attachment.data === null) {
+				return;
+			}
+			const json = JSON.stringify(attachment.data, null, 2);
+			pushEventBlock(
+				ctx,
+				[
+					"> **Structured output:**",
+					"<details><summary>Data</summary>",
+					"",
+					formatCodeBlock(json.slice(0, 3000), "json"),
+					"",
+					"</details>",
+				].join("\n"),
+			);
+			return;
+		}
 		case "hook_cancelled": {
 			const label = attachment.hookName || attachment.hookEvent;
 			const reason = attachment.timedOut
@@ -568,6 +600,34 @@ function pushEventBlock(ctx: RenderContext, ...blocks: string[]): void {
 
 	ctx.markdown.push(...blocks);
 	ctx.lastSender = null;
+}
+
+function formatDiagnosticsFile(
+	ctx: RenderContext,
+	file: {
+		uri?: string | undefined;
+		diagnostics?:
+			| { message?: string | undefined; severity?: string | undefined }[]
+			| undefined;
+	},
+): string | null {
+	const diagnostics = file.diagnostics ?? [];
+	if (diagnostics.length === 0) {
+		return null;
+	}
+
+	const counts = new Map<string, number>();
+	for (const diagnostic of diagnostics) {
+		const severity = diagnostic.severity?.toLowerCase() || "issue";
+		counts.set(severity, (counts.get(severity) ?? 0) + 1);
+	}
+
+	const summary = [...counts.entries()]
+		.map(([severity, count]) => `${count} ${severity}${count === 1 ? "" : "s"}`)
+		.join(", ");
+
+	const path = file.uri ? maskPath(ctx, file.uri) : "unknown file";
+	return `\`${path}\` — ${summary}`;
 }
 
 function formatDeltaSummary(

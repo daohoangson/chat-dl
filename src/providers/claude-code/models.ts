@@ -229,6 +229,22 @@ const attachmentPayloadFields = {
 	timeoutMs: v.optional(v.number()),
 	pageCount: v.optional(v.number()),
 	fileSize: v.optional(v.number()),
+	data: v.optional(v.unknown()),
+	files: v.optional(
+		v.array(
+			v.looseObject({
+				uri: v.optional(v.string()),
+				diagnostics: v.optional(
+					v.array(
+						v.looseObject({
+							message: v.optional(v.string()),
+							severity: v.optional(v.string()),
+						}),
+					),
+				),
+			}),
+		),
+	),
 	skills: v.optional(
 		v.array(
 			v.looseObject({
@@ -274,6 +290,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("deferred_tools_delta"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("diagnostics"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
@@ -342,6 +362,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("skill_listing"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("structured_output"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
@@ -419,10 +443,13 @@ export type FrameLinkLine = v.InferOutput<typeof frameLinkLineSchema>;
 
 const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("agent-name") }),
+	v.looseObject({ type: v.literal("artifact-autoreact-ledger") }),
+	v.looseObject({ type: v.literal("artifact-comment-monitor") }),
 	v.looseObject({ type: v.literal("atis-latch") }),
 	v.looseObject({ type: v.literal("bridge-session") }),
 	v.looseObject({ type: v.literal("file-history-delta") }),
 	v.looseObject({ type: v.literal("file-history-snapshot") }),
+	v.looseObject({ type: v.literal("fork-context-ref") }),
 	v.looseObject({ type: v.literal("last-prompt") }),
 	v.looseObject({ type: v.literal("mode") }),
 	v.looseObject({ type: v.literal("progress") }),
