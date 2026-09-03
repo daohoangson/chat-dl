@@ -298,6 +298,16 @@ export type InterAgentCommunicationMetadataLine = v.InferOutput<
 	typeof interAgentCommunicationMetadataLineSchema
 >;
 
+const tokenUsageRecordLineSchema = v.looseObject({
+	type: v.literal("token_usage_record"),
+	timestamp: v.optional(v.string()),
+	payload: v.looseObject({}),
+});
+
+export type TokenUsageRecordLine = v.InferOutput<
+	typeof tokenUsageRecordLineSchema
+>;
+
 export const codexCliLineSchema = v.variant("type", [
 	responseItemLineSchema,
 	eventMsgLineSchema,
@@ -306,6 +316,7 @@ export const codexCliLineSchema = v.variant("type", [
 	compactedLineSchema,
 	worldStateLineSchema,
 	interAgentCommunicationMetadataLineSchema,
+	tokenUsageRecordLineSchema,
 ]);
 
 export type CodexCliLine = v.InferOutput<typeof codexCliLineSchema>;
