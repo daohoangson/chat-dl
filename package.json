@@ -20,32 +20,37 @@
 		"prebuild": "rm -rf dist",
 		"build": "npm run build:bin && npm run build:cjs",
 		"build:bin": "tsup src/bin",
-		"build:cjs": "tsc --declaration true --noEmit false --outDir dist/cjs",
+		"build:cjs": "tsc --declaration true --noEmit false --outDir dist/cjs && tsc-alias -p tsconfig.json --outDir dist/cjs",
 		"prepublic": "npm run ci && npm run build",
-		"public": "npm publish --access public"
+		"public": "npm publish --access public",
+		"verify:package": "npm run build && node scripts/verify-package.cjs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^1.9.4",
-		"@putout/minify": "^6.0.0",
 		"@tsconfig/strictest": "^2.0.5",
-		"@types/chrome-remote-interface": "^0.34.0",
 		"@types/yargs": "^17.0.33",
 		"acorn": "^8.14.1",
 		"espree": "^11.0.0",
 		"esprima": "^4.0.1",
 		"hermes-parser": "^0.37.0",
 		"tenko": "^2.0.1",
+		"tsc-alias": "^1.9.4",
 		"tsup": "^8.4.0",
 		"tsx": "^4.19.3",
 		"typescript": "^7.0.0"
 	},
 	"dependencies": {
+		"@putout/minify": "^6.0.0",
 		"@streamparser/json-node": "^0.0.25",
+		"@types/chrome-remote-interface": "^0.34.0",
 		"chrome-remote-interface": "^0.34.0",
 		"file-system-cache": "^2.4.7",
 		"puppeteer": "^25.0.0",
 		"uuid": "^14.0.0",
 		"valibot": "^1.0.0",
 		"yargs": "^18.0.0"
+	},
+	"engines": {
+		"node": ">=22.13.0"
 	}
 }

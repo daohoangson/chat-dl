@@ -86,6 +86,11 @@ npx chat-dl --existing-chrome <protected-share-url>
 
 ## Development
 
+Requires Node.js 22.13 or newer. Run `npm run verify:package` to build and
+check a packed tarball in a clean temporary consumer: CommonJS and ESM imports,
+TypeScript declarations, and CLI help. The check installs production dependencies
+from npm, skips browser downloads, and does not contact chat providers.
+
 ```bash
 npm install
 npm start -- <url>

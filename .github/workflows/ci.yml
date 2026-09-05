@@ -27,6 +27,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Packed package smoke check
+        run: node scripts/verify-package.cjs
+
       - name: Smoke test CLI with public Grok share
         env:
           GROK_SMOKE_URL: https://x.com/i/grok/share/akO8vLhNg8etiOf15MCD1IHhN
