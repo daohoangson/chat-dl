@@ -119,3 +119,10 @@ bot protection rejects in headless Chrome.
 Fixtures recorded as `broken` or `blocked` document providers that are already
 failing: they do not fail the run, but they are reported as `FIXED?` if they
 start working, so the list stays honest.
+
+To regression-test that `dir2md` and `opencode2md` keep processing every
+selected candidate but exit non-zero when any export fails:
+
+```bash
+npm run verify:bulk-exit-status
+```
