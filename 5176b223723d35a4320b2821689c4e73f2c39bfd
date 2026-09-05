@@ -1,0 +1,23 @@
+package.json
+  acafefa7a433d7a0 34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "5176b223723d35a4320b2821689c4e73f2c39bfd",
+  "prompts": {
+    "acafefa7a433d7a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0bffbe16-4db7-44c6-be9b-98c75c6bc478",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 0,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  }
+}
