@@ -279,6 +279,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("batching_reminder_sent"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("command_permissions"),
 		...attachmentPayloadFields,
 	}),
@@ -368,6 +372,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("remote_session_change"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("silent_turn_reminder"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
