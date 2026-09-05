@@ -1,0 +1,31 @@
+src/providers/codex-cli/index.ts
+  edddf93d2e2f5452 22-41,97-98,107-108,139-140,142-144,150,152,184-185,187-193,196,201,208-210
+src/commands/dir2md.ts
+  edddf93d2e2f5452 6,38,53-54,66,127,132,159-160,162-163,170
+scripts/verify-codex-discovery.ts
+  edddf93d2e2f5452 8-9,11-15,184-306
+package.json
+  edddf93d2e2f5452 16
+src/providers/index.ts
+  edddf93d2e2f5452 165-166,173,182-183,187,191-192,194-195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "584244eddd69ddedebb1218ef81c4690ddf32dd2",
+  "prompts": {
+    "edddf93d2e2f5452": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "b2c3cf9b-ebd3-4021-b869-81a17811f905",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 241,
+      "total_deletions": 43,
+      "accepted_lines": 199,
+      "overriden_lines": 0
+    }
+  }
+}
