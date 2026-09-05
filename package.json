@@ -31,6 +31,7 @@
 		"@types/chrome-remote-interface": "^0.34.0",
 		"@types/yargs": "^17.0.33",
 		"acorn": "^8.14.1",
+		"esbuild": "^0.28.1",
 		"espree": "^11.0.0",
 		"esprima": "^4.0.1",
 		"hermes-parser": "^0.37.0",
