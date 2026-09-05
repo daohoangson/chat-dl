@@ -868,6 +868,16 @@ const PRICING = {
 		cacheWrite1h: 20,
 		cacheRead: 1,
 	},
+	// 5.1 uses a lower cache-hit multiplier (0.025x input vs the standard 0.1x
+	// everyone else uses) — added 2026-09-05, verified against live Anthropic docs.
+	fableAndMythos51: {
+		modelLabel: "claude-fable/mythos-5.1",
+		input: 10,
+		output: 50,
+		cacheWrite5m: 12.5,
+		cacheWrite1h: 20,
+		cacheRead: 0.25,
+	},
 	haiku45: {
 		modelLabel: "claude-haiku-4.5",
 		input: 1,
@@ -924,6 +934,9 @@ const PRICING = {
 		cacheWrite1h: 10,
 		cacheRead: 0.5,
 	},
+	// Fast mode is not available on Opus 4.7 (requests with speed: "fast"
+	// error out) — removed the stale $30/$150 fast rate 2026-09-05, verified
+	// against live Anthropic docs.
 	opus47: {
 		modelLabel: "claude-opus-4.7",
 		input: 5,
@@ -931,8 +944,6 @@ const PRICING = {
 		cacheWrite5m: 6.25,
 		cacheWrite1h: 10,
 		cacheRead: 0.5,
-		fastInput: 30,
-		fastOutput: 150,
 	},
 	opus48: {
 		modelLabel: "claude-opus-4.8",
@@ -1007,6 +1018,14 @@ function renderUsageSummary(ctx: RenderContext): void {
 function getPricing(model: string | null): PricingInfo | null {
 	if (!model) return null;
 	const normalized = model.toLowerCase();
+	if (
+		normalized.includes("fable-5-1") ||
+		normalized.includes("fable-5.1") ||
+		normalized.includes("mythos-5-1") ||
+		normalized.includes("mythos-5.1")
+	) {
+		return PRICING.fableAndMythos51;
+	}
 	if (normalized.includes("fable") || normalized.includes("mythos")) {
 		return PRICING.fableAndMythos5;
 	}

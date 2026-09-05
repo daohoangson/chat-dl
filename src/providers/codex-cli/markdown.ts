@@ -684,11 +684,24 @@ function formatNumber(value: number): string {
 function getPricing(model: string | null): PricingInfo | null {
 	if (!model) return null;
 	const normalized = model.toLowerCase();
-	const gpt56LongContext = {
+	// Shared by every model on the 272K long-context pricing tier introduced
+	// with GPT-5.6 (2x input/cache rates, 1.5x output above the threshold).
+	const longContext272k = {
 		longContextThreshold: 272_000,
 		longContextInputMultiplier: 2,
 		longContextOutputMultiplier: 1.5,
 	};
+
+	if (normalized.startsWith("gpt-6-astra")) {
+		return {
+			modelLabel: "gpt-6-astra",
+			input: 10,
+			cacheRead: 1,
+			cacheWrite: 12.5,
+			output: 50,
+			...longContext272k,
+		};
+	}
 
 	if (normalized.startsWith("gpt-5.6-terra")) {
 		// Updated 2026-08-16 for the 2026-07-30 OpenAI price cut.
@@ -698,7 +711,7 @@ function getPricing(model: string | null): PricingInfo | null {
 			cacheRead: 0.2,
 			cacheWrite: 2.5,
 			output: 12,
-			...gpt56LongContext,
+			...longContext272k,
 		};
 	}
 
@@ -710,18 +723,19 @@ function getPricing(model: string | null): PricingInfo | null {
 			cacheRead: 0.02,
 			cacheWrite: 0.25,
 			output: 1.2,
-			...gpt56LongContext,
+			...longContext272k,
 		};
 	}
 
 	if (normalized === "gpt-5.6" || normalized.startsWith("gpt-5.6-sol")) {
+		// Cut from $5/$30 to $4/$20 (2026-09-05, verified against live OpenAI docs).
 		return {
 			modelLabel: "gpt-5.6-sol",
-			input: 5,
-			cacheRead: 0.5,
-			cacheWrite: 6.25,
-			output: 30,
-			...gpt56LongContext,
+			input: 4,
+			cacheRead: 0.4,
+			cacheWrite: 5,
+			output: 20,
+			...longContext272k,
 		};
 	}
 
