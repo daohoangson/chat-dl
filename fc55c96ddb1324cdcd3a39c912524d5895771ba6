@@ -1,0 +1,23 @@
+README.md
+  64b5168bcdfb9028 94-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "fc55c96ddb1324cdcd3a39c912524d5895771ba6",
+  "prompts": {
+    "64b5168bcdfb9028": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6ea3f165-bc28-4d19-aece-5c4aed30ca99",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 11,
+      "total_deletions": 0,
+      "accepted_lines": 11,
+      "overriden_lines": 0
+    }
+  }
+}
