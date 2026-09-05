@@ -1,0 +1,25 @@
+package.json
+  6561a8e071fe71c2 15
+README.md
+  6561a8e071fe71c2 122-128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "b2776d2eddd58219c354b7312db320adaf1cb995",
+  "prompts": {
+    "6561a8e071fe71c2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6d730438-d1ec-4624-8bb4-3583f9e7e8e5",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 12,
+      "total_deletions": 4,
+      "accepted_lines": 8,
+      "overriden_lines": 0
+    }
+  }
+}
