@@ -125,6 +125,7 @@ function exportSessions(args: OpenCode2mdArgs): void {
 	console.log(
 		`\nProcessed: ${processed}, Errored: ${errored}, Filtered: ${filtered}`,
 	);
+	if (errored > 0) process.exitCode = 1;
 }
 
 function safePathSegment(value: string, fallback: string): string {

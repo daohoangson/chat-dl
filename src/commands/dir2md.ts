@@ -164,6 +164,7 @@ async function handler(args: Dir2mdArgs) {
 	console.log(
 		`\nProcessed: ${processed}, Skipped: ${skipped}, Errored: ${errored}, Filtered: ${filtered}`,
 	);
+	if (errored > 0) process.exitCode = 1;
 }
 
 export const dir2md: CommandModule<unknown, Dir2mdArgs> = {
