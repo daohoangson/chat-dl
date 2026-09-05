@@ -4,10 +4,15 @@ import { syncBuiltinESMExports } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { mock, test } from "node:test";
-import { getProviderByPath, shouldSkipSubagentPath } from "../src/providers";
+import {
+	createCodexSessionDiscoveryContext,
+	getProviderByPath,
+	renderMarkdownFromPath,
+	shouldSkipSubagentPath,
+} from "../src/providers";
 import {
 	isSubagentSessionPath,
-	renderMarkdownFromPath,
+	renderMarkdownFromPath as renderCodexMarkdownFromPath,
 } from "../src/providers/codex-cli";
 import { readFirstLine } from "../src/providers/first-line";
 
@@ -169,6 +174,129 @@ test("bounded discovery, shared headers, and fresh parent/child traversal", () =
 		}
 		console.log(
 			"16 MiB unrelated transcript: 4096 discovery bytes; no whole-file read.",
+		);
+	} finally {
+		mock.restoreAll();
+		syncBuiltinESMExports();
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
+});
+
+test("a shared discovery context reuses one tree walk across an export, and each export gets fresh discovery", () => {
+	const dir = fs.mkdtempSync(join(tmpdir(), "codex-discovery-shared-"));
+	const originalRead = fs.readSync;
+	let readCalls = 0;
+	mock.method(fs, "readSync", (...args: Parameters<typeof fs.readSync>) => {
+		const count = originalRead(...args);
+		if (count > 0) readCalls++;
+		return count;
+	});
+	syncBuiltinESMExports();
+	try {
+		const rootDir = join(dir, "sessions");
+		fs.mkdirSync(rootDir, { recursive: true });
+
+		const STANDALONE_COUNT = 150; // exceeds the 128-entry first-line cache
+		for (let i = 0; i < STANDALONE_COUNT; i++) {
+			fs.writeFileSync(
+				join(rootDir, `standalone-${i}.jsonl`),
+				`${meta(`standalone-${i}`)}\n`,
+			);
+		}
+		const roots = ["root-a", "root-b", "root-c"];
+		for (const rootId of roots) {
+			fs.writeFileSync(join(rootDir, `${rootId}.jsonl`), `${meta(rootId)}\n`);
+			for (let c = 0; c < 2; c++) {
+				fs.writeFileSync(
+					join(rootDir, `${rootId}-child-${c}.jsonl`),
+					`${meta(`${rootId}-child-${c}`, rootId)}\n`,
+				);
+			}
+		}
+		const totalFiles = STANDALONE_COUNT + roots.length * 3;
+
+		const exportContext = createCodexSessionDiscoveryContext();
+
+		// Discovery phase: filter every candidate once, as dir2md's collectCandidates does.
+		// Using the context-aware entry point directly isolates this metric from the
+		// unrelated, already-bounded first-line cache that plain path-based provider
+		// detection also relies on.
+		readCalls = 0;
+		for (const name of fs.readdirSync(rootDir)) {
+			isSubagentSessionPath(join(rootDir, name), exportContext);
+		}
+		assert.equal(
+			readCalls,
+			totalFiles,
+			"discovery must build the index with exactly one tree walk",
+		);
+
+		// Rendering every selected root candidate must reuse that same index.
+		for (const rootId of roots) {
+			const markdown = renderCodexMarkdownFromPath(
+				join(rootDir, `${rootId}.jsonl`),
+				exportContext,
+			);
+			assert.match(markdown, new RegExp(`Subagent: ${rootId}-child-0`));
+			assert.match(markdown, new RegExp(`Subagent: ${rootId}-child-1`));
+		}
+		assert.equal(
+			readCalls,
+			totalFiles,
+			"rendering additional candidates through a shared context must not re-walk or re-read the tree",
+		);
+
+		// A file added mid-export is invisible to that export's snapshot...
+		fs.writeFileSync(
+			join(rootDir, "root-a-child-2.jsonl"),
+			`${meta("root-a-child-2", "root-a")}\n`,
+		);
+		const staleMarkdown = renderCodexMarkdownFromPath(
+			join(rootDir, "root-a.jsonl"),
+			exportContext,
+		);
+		assert.doesNotMatch(staleMarkdown, /Subagent: root-a-child-2/);
+		assert.equal(
+			readCalls,
+			totalFiles,
+			"reusing a context must not trigger another tree walk even when files changed",
+		);
+
+		// ...but the next export (a fresh context) sees it. The newly written
+		// file was never read by anything before, so a fresh walk must cost at
+		// least one more read than the shared context ever did (which stayed
+		// flat at exactly `totalFiles`, asserted above).
+		const freshContext = createCodexSessionDiscoveryContext();
+		const freshMarkdown = renderCodexMarkdownFromPath(
+			join(rootDir, "root-a.jsonl"),
+			freshContext,
+		);
+		assert.match(freshMarkdown, /Subagent: root-a-child-2/);
+		assert.ok(
+			readCalls > totalFiles,
+			"a fresh context re-discovers the tree instead of reusing the prior context's index",
+		);
+
+		// Baseline: without a shared context, each render independently rebuilds
+		// the index. The tree now has totalFiles + 1 files, which exceeds the
+		// 128-entry first-line cache, so at least (totalFiles + 1 - 128) of those
+		// reads must be genuine misses every single time -- unlike a shared
+		// context, whose repeat lookups above cost exactly zero reads.
+		const currentFileCount = totalFiles + 1;
+		const minGenuineRereads = currentFileCount - 128;
+		readCalls = 0;
+		renderCodexMarkdownFromPath(join(rootDir, "root-b.jsonl"));
+		const firstUnsharedRender = readCalls;
+		readCalls = 0;
+		renderCodexMarkdownFromPath(join(rootDir, "root-c.jsonl"));
+		const secondUnsharedRender = readCalls;
+		assert.ok(
+			firstUnsharedRender >= minGenuineRereads,
+			`each unshared render should independently re-walk the tree (got ${firstUnsharedRender})`,
+		);
+		assert.ok(
+			secondUnsharedRender >= minGenuineRereads,
+			`each unshared render should independently re-walk the tree (got ${secondUnsharedRender})`,
 		);
 	} finally {
 		mock.restoreAll();

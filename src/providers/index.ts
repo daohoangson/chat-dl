@@ -161,13 +161,16 @@ export async function renderMarkdownFromUrl(
 	throw new Error(`Unsupported URL: ${url}`);
 }
 
-export function renderMarkdownFromPath(path: string) {
+export function renderMarkdownFromPath(
+	path: string,
+	discoveryContext?: codexCli.SessionDiscoveryContext,
+) {
 	const provider = getProviderByPath(path);
 	switch (provider) {
 		case "claude-code":
 			return claudeCode.renderMarkdownFromPath(path);
 		case "codex-cli":
-			return codexCli.renderMarkdownFromPath(path);
+			return codexCli.renderMarkdownFromPath(path, discoveryContext);
 		case "kiro":
 			return kiro.renderMarkdownFromPath(path);
 		default:
@@ -175,12 +178,20 @@ export function renderMarkdownFromPath(path: string) {
 	}
 }
 
-export function shouldSkipSubagentPath(path: string): boolean {
+export function shouldSkipSubagentPath(
+	path: string,
+	discoveryContext?: codexCli.SessionDiscoveryContext,
+): boolean {
 	return (
 		getProviderByPath(path) === "codex-cli" &&
-		codexCli.isSubagentSessionPath(path)
+		codexCli.isSubagentSessionPath(path, discoveryContext)
 	);
 }
+
+export const createCodexSessionDiscoveryContext =
+	codexCli.createSessionDiscoveryContext;
+
+export type { SessionDiscoveryContext } from "./codex-cli";
 
 // Directories whose contents are sub-agent transcripts rendered inline by
 // their parent session (see each provider's own isSubagentDirectory), not

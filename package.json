@@ -13,6 +13,7 @@
 		"lint": "npx @biomejs/biome lint --write .",
 		"start": "tsx src/bin/chat-dl.ts",
 		"verify:claude-jsonl": "tsx scripts/verify-claude-jsonl.ts",
+		"verify:codex-discovery": "tsx scripts/verify-codex-discovery.ts",
 		"verify:codex-jsonl": "tsx scripts/verify-codex-jsonl.ts",
 		"verify:kiro-jsonl": "tsx scripts/verify-kiro-jsonl.ts",
 		"verify:opencode": "tsx scripts/verify-opencode.ts",
