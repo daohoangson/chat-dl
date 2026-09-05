@@ -1,4 +1,3 @@
-import { closeSync, openSync, readSync, statSync } from "node:fs";
 import {
 	type CacheValue,
 	type Provider,
@@ -12,6 +11,7 @@ import * as chatgpt from "./chatgpt";
 import * as claude from "./claude";
 import * as claudeCode from "./claude-code";
 import * as codexCli from "./codex-cli";
+import { readFirstLine } from "./first-line";
 import * as gemini from "./gemini";
 import * as grok from "./grok";
 import * as kiro from "./kiro";
@@ -19,11 +19,6 @@ import * as kiro from "./kiro";
 export interface DownloadOptions {
 	existingChrome?: boolean;
 }
-
-// Generous margin over observed first-line sizes (claude-code's largest seen
-// is ~60KB, from an inlined system-instruction); a first line beyond this
-// falls back to "can't determine" rather than reading the whole file.
-const CONTENT_SNIFF_BYTES = 262_144;
 
 // Each provider's JSONL lines have a distinct top-level shape, verified
 // against every local session file:
@@ -52,32 +47,6 @@ function detectProviderByContent(path: string): Provider | undefined {
 	if (hasPayload) return "kiro";
 	if (hasType) return "claude-code";
 	return undefined;
-}
-
-function readFirstLine(path: string): string | null {
-	let fd: number;
-	try {
-		fd = openSync(path, "r");
-	} catch {
-		return null;
-	}
-
-	try {
-		const size = Math.min(statSync(path).size, CONTENT_SNIFF_BYTES);
-		if (size === 0) return null;
-
-		const buffer = Buffer.alloc(size);
-		const bytesRead = readSync(fd, buffer, 0, size, 0);
-		const chunk = buffer.toString("utf-8", 0, bytesRead);
-		const newlineIndex = chunk.indexOf("\n");
-		const firstLine =
-			newlineIndex === -1 ? chunk : chunk.slice(0, newlineIndex);
-		return firstLine.trim() || null;
-	} catch {
-		return null;
-	} finally {
-		closeSync(fd);
-	}
 }
 
 // Path-based detection first (cheap, no I/O); falls back to sniffing the

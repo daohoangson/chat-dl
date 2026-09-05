@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import * as v from "valibot";
+import { readFirstLine } from "../first-line";
 import {
 	type RenderOptions,
 	type RenderSubagentSession,
@@ -19,8 +20,6 @@ interface SessionEntry {
 interface SessionIndex {
 	childrenByParent: Map<string, SessionEntry[]>;
 }
-
-const sessionIndexCache = new Map<string, SessionIndex>();
 
 const sessionRelationLineSchema = v.looseObject({
 	type: v.literal("session_meta"),
@@ -149,8 +148,8 @@ function findSessionsRoot(filePath: string): string {
 }
 
 function getSessionIndex(rootDir: string): SessionIndex {
-	const cached = sessionIndexCache.get(rootDir);
-	if (cached) return cached;
+	// Rewalk each time so additions, removals, and reparenting stay visible.
+	// The shared first-line cache reuses unchanged file metadata.
 
 	const childrenByParent = new Map<string, SessionEntry[]>();
 	for (const path of collectJsonlFiles(rootDir)) {
@@ -163,9 +162,7 @@ function getSessionIndex(rootDir: string): SessionIndex {
 		childrenByParent.set(relation.parentId, children);
 	}
 
-	const index = { childrenByParent };
-	sessionIndexCache.set(rootDir, index);
-	return index;
+	return { childrenByParent };
 }
 
 function collectJsonlFiles(dir: string): string[] {
@@ -185,11 +182,7 @@ function collectJsonlFiles(dir: string): string[] {
 function readSessionRelation(
 	filePath: string,
 ): Omit<SessionEntry, "path"> | null {
-	const content = readFileSync(filePath, "utf-8");
-	const newlineIndex = content.indexOf("\n");
-	const firstLine = content
-		.slice(0, newlineIndex === -1 ? content.length : newlineIndex)
-		.trim();
+	const firstLine = readFirstLine(filePath);
 	if (!firstLine) return null;
 
 	try {
