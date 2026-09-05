@@ -1,0 +1,5 @@
+{"type": "session_meta", "payload": {"id": "root"}}
+{"type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Show an example."}]}}
+{"type": "response_item", "payload": {"type": "function_call", "name": "read", "arguments": "{}", "call_id": "call-1"}}
+{"type": "response_item", "payload": {"type": "function_call_output", "call_id": "call-1", "output": "Example:\n```md\nhello\n```"}}
+{"type": "response_item", "payload": {"type": "message", "role": "assistant", "content": [{"type": "output_text", "text": "Done."}]}}

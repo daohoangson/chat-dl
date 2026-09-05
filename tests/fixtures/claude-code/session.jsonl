@@ -1,0 +1,4 @@
+{"type": "user", "message": {"content": "Show an example."}}
+{"type": "assistant", "message": {"model": "claude-sonnet-4-20250514", "content": [{"type": "thinking", "thinking": "Check formatting."}, {"type": "tool_use", "id": "tool-1", "name": "Read", "input": {"file_path": "example.md"}}], "usage": {"input_tokens": 10, "output_tokens": 5}}}
+{"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "tool-1", "content": "Example:\n```md\nhello\n```"}]}}
+{"type": "assistant", "message": {"content": [{"type": "text", "text": "Done."}]}}

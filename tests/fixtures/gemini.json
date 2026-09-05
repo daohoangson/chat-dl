@@ -1,0 +1,13 @@
+[
+	[
+		null,
+		[
+			[
+				["conversation", "response"],
+				null,
+				[["Show an example."]],
+				[[["candidate", ["Example:\n```md\nhello\n```"]]]]
+			]
+		]
+	]
+]
