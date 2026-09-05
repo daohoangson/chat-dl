@@ -1,4 +1,3 @@
-import { v4 } from "uuid";
 import type { Content, Message, Metadata } from "./models";
 
 function getAuthor(str?: string): string | undefined {
@@ -27,9 +26,13 @@ function searchAndReplace(
 
 interface CitationId {
 	n: number;
-	uuid: string;
+	anchor: string;
 }
-function getContentReferences(input: string, metadata?: Metadata): string {
+function getContentReferences(
+	input: string,
+	messageIndex: number,
+	metadata?: Metadata,
+): string {
 	const sorted = (metadata?.content_references ?? []).toSorted(
 		// sort by start_ix increasing
 		(a, b) => a.start_idx - b.start_idx,
@@ -54,9 +57,13 @@ function getContentReferences(input: string, metadata?: Metadata): string {
 		webpage: MetadataContentReferenceWebpage,
 	) => {
 		const { url } = webpage;
-		const citationId: CitationId = { n: citations.length + 1, uuid: v4() };
+		const citationId: CitationId = {
+			n: citations.length + 1,
+			anchor: `${messageIndex + 1}-${citations.length + 1}`,
+		};
 		const existing = refsByUrl.get(url);
-		const refId = existing?.refId ?? v4();
+		const refId =
+			existing?.refId ?? `${messageIndex + 1}-${refsByUrl.size + 1}`;
 		if (typeof existing === "undefined") {
 			refsByUrl.set(url, { citationIds: [citationId], refId, webpage });
 		} else {
@@ -90,7 +97,7 @@ function getContentReferences(input: string, metadata?: Metadata): string {
 		output = searchAndReplace(
 			output,
 			ref,
-			`<a name="citation-${citationId.uuid}"></a><sup>[[${citationId.n}]](#ref-${refId})</sup>`,
+			`<a name="citation-${citationId.anchor}"></a><sup>[[${citationId.n}]](#ref-${refId})</sup>`,
 		);
 	};
 	for (const ref of sorted.toReversed()) {
@@ -123,7 +130,7 @@ function getContentReferences(input: string, metadata?: Metadata): string {
 			output += [
 				`<a name="ref-${refId}"></a>`,
 				`[${citationIds
-					.map(({ n, uuid }) => `[^${n}](#citation-${uuid})`)
+					.map(({ n, anchor }) => `[^${n}](#citation-${anchor})`)
 					.join(", ")}] `,
 				`**${webpage.title}**: ${webpage.snippet} `,
 				`[${webpage.attribution}](${webpage.url})`,
@@ -167,7 +174,8 @@ function getContentText(content: Content): string {
 export function renderFromMessages(messages: Message[]): string {
 	const markdown: string[] = [];
 
-	for (const message of messages) {
+	// Position scopes anchors even when message IDs are missing or duplicated.
+	for (const [messageIndex, message] of messages.entries()) {
 		if (message.metadata.is_redacted === true) continue;
 
 		const author =
@@ -179,7 +187,7 @@ export function renderFromMessages(messages: Message[]): string {
 			getAuthor(message.author.role);
 
 		let text = getContentText(message.content);
-		text = getContentReferences(text, message.metadata);
+		text = getContentReferences(text, messageIndex, message.metadata);
 		if (text.length === 0) {
 			continue;
 		}
