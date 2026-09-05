@@ -119,3 +119,14 @@ bot protection rejects in headless Chrome.
 Fixtures recorded as `broken` or `blocked` document providers that are already
 failing: they do not fail the run, but they are reported as `FIXED?` if they
 start working, so the list stays honest.
+
+To check the Puppeteer browser-ownership and cleanup logic:
+
+```bash
+npm run verify:puppeteer
+```
+
+The script mocks `puppeteer.connect`/`puppeteer.launch` and asserts that
+borrowed browsers (connected via `PUPPETEER_BROWSER_WS_ENDPOINT`) are only
+disconnected, never closed, while browsers launched by chat-dl itself are
+always closed, including when setup or page cleanup fails.
