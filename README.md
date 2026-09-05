@@ -91,6 +91,17 @@ npm install
 npm start -- <url>
 ```
 
+### Tests
+
+```bash
+npm test
+```
+
+Runs the offline regression suite against committed synthetic fixtures for
+every supported provider — no network access or personal data required. See
+[`tests/README.md`](tests/README.md) for coverage details and the separate
+live integration workflow.
+
 ### Parser verification
 
 To smoke-test the Claude Code parser and renderer against recent local transcripts:
