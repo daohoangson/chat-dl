@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import * as v from "valibot";
+import { readFirstLine } from "../first-line";
 import {
 	type RenderOptions,
 	type RenderSubagentSession,
@@ -18,9 +19,27 @@ interface SessionEntry {
 
 interface SessionIndex {
 	childrenByParent: Map<string, SessionEntry[]>;
+	byPath: Map<string, SessionEntry>;
 }
 
-const sessionIndexCache = new Map<string, SessionIndex>();
+/**
+ * Reuses one session index per sessions root across a single bulk export, so
+ * discovery (subagent filtering) and rendering share the same tree walk
+ * instead of each render re-walking and re-reading every session file.
+ * Scoped to the caller: create one per export and let it go out of scope
+ * when the export finishes. Relationships are a snapshot of that export;
+ * create a fresh context for the next one to see additions, removals, and
+ * reparenting. Memory is O(number of sessions): only compact parsed relation
+ * metadata (ids, parent ids, paths, agent labels) is retained, not raw
+ * headers or transcript contents.
+ */
+export interface SessionDiscoveryContext {
+	indexByRoot: Map<string, SessionIndex>;
+}
+
+export function createSessionDiscoveryContext(): SessionDiscoveryContext {
+	return { indexByRoot: new Map() };
+}
 
 const sessionRelationLineSchema = v.looseObject({
 	type: v.literal("session_meta"),
@@ -74,13 +93,20 @@ export function parseJsonlFromPath(filePath: string): CodexCliLine[] {
 	return parsed;
 }
 
-export function renderMarkdownFromPath(filePath: string): string {
+export function renderMarkdownFromPath(
+	filePath: string,
+	context?: SessionDiscoveryContext,
+): string {
 	const lines = parseJsonlFromPath(filePath);
 	const options: RenderOptions = {};
 	const sessionId = getSessionId(lines);
 	if (sessionId) {
 		options.rootSessionId = sessionId;
-		options.subagentSessions = getDescendantSessions(filePath, sessionId).map(
+		options.subagentSessions = getDescendantSessions(
+			filePath,
+			sessionId,
+			context,
+		).map(
 			(session): RenderSubagentSession => ({
 				id: session.id,
 				parentId: session.parentId,
@@ -109,15 +135,21 @@ function getSessionId(lines: CodexCliLine[]): string | null {
 	return null;
 }
 
-export function isSubagentSessionPath(filePath: string): boolean {
-	return readSessionRelation(filePath)?.parentId != null;
+export function isSubagentSessionPath(
+	filePath: string,
+	context?: SessionDiscoveryContext,
+): boolean {
+	if (!context) return readSessionRelation(filePath)?.parentId != null;
+	const index = getSessionIndex(findSessionsRoot(filePath), context);
+	return index.byPath.get(resolve(filePath))?.parentId != null;
 }
 
 function getDescendantSessions(
 	filePath: string,
 	sessionId: string,
+	context?: SessionDiscoveryContext,
 ): SessionEntry[] {
-	const index = getSessionIndex(findSessionsRoot(filePath));
+	const index = getSessionIndex(findSessionsRoot(filePath), context);
 	const descendants: SessionEntry[] = [];
 	const queue = [sessionId];
 	const seenIds = new Set(queue);
@@ -148,23 +180,33 @@ function findSessionsRoot(filePath: string): string {
 	}
 }
 
-function getSessionIndex(rootDir: string): SessionIndex {
-	const cached = sessionIndexCache.get(rootDir);
+function getSessionIndex(
+	rootDir: string,
+	context?: SessionDiscoveryContext,
+): SessionIndex {
+	// Without a shared context, rewalk fresh every call so additions,
+	// removals, and reparenting stay visible to standalone library calls.
+	// With a context, build the index once per root and reuse it for the
+	// rest of that context's lifetime (one bulk export); a new context
+	// (the next export) sees fresh discovery again.
+	const cached = context?.indexByRoot.get(rootDir);
 	if (cached) return cached;
 
 	const childrenByParent = new Map<string, SessionEntry[]>();
+	const byPath = new Map<string, SessionEntry>();
 	for (const path of collectJsonlFiles(rootDir)) {
 		const relation = readSessionRelation(path);
 		if (!relation) continue;
 		const session = { ...relation, path };
+		byPath.set(resolve(path), session);
 		if (!relation.parentId) continue;
 		const children = childrenByParent.get(relation.parentId) ?? [];
 		children.push(session);
 		childrenByParent.set(relation.parentId, children);
 	}
 
-	const index = { childrenByParent };
-	sessionIndexCache.set(rootDir, index);
+	const index = { childrenByParent, byPath };
+	context?.indexByRoot.set(rootDir, index);
 	return index;
 }
 
@@ -185,11 +227,7 @@ function collectJsonlFiles(dir: string): string[] {
 function readSessionRelation(
 	filePath: string,
 ): Omit<SessionEntry, "path"> | null {
-	const content = readFileSync(filePath, "utf-8");
-	const newlineIndex = content.indexOf("\n");
-	const firstLine = content
-		.slice(0, newlineIndex === -1 ? content.length : newlineIndex)
-		.trim();
+	const firstLine = readFirstLine(filePath);
 	if (!firstLine) return null;
 
 	try {

@@ -16,6 +16,7 @@
 		"test:integration": "tsx scripts/verify-urls.ts",
 		"verify:browser-response-races": "tsx scripts/verify-browser-response-races.ts",
 		"verify:claude-jsonl": "tsx scripts/verify-claude-jsonl.ts",
+		"verify:codex-discovery": "tsx scripts/verify-codex-discovery.ts",
 		"verify:codex-jsonl": "tsx scripts/verify-codex-jsonl.ts",
 		"verify:kiro-jsonl": "tsx scripts/verify-kiro-jsonl.ts",
 		"verify:opencode": "tsx scripts/verify-opencode.ts",
