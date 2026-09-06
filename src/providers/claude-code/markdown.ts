@@ -20,6 +20,7 @@ import {
 	isAiTitleLine,
 	isAssistantLine,
 	isAttachmentLine,
+	isCostStateLine,
 	isCustomTitleLine,
 	isFrameLinkLine,
 	isPrLinkLine,
@@ -59,6 +60,7 @@ interface RenderContext {
 	usageCost: number | null;
 	usageModelLabels: string[];
 	usageUnpricedModels: string[];
+	usageGroundTruthCost: number | null;
 	includedSubagents: number;
 	cwd: string | null;
 	homeDir: string;
@@ -97,6 +99,7 @@ export function renderFromLines(
 		usageCost: usage.cost,
 		usageModelLabels: usage.modelLabels,
 		usageUnpricedModels: usage.unpricedModels,
+		usageGroundTruthCost: usage.groundTruthCost,
 		includedSubagents: options?.usageLineGroups?.length ?? 0,
 		cwd,
 		homeDir: homedir(),
@@ -730,6 +733,23 @@ interface UsageAggregation {
 	cost: number | null;
 	modelLabels: string[];
 	unpricedModels: string[];
+	groundTruthCost: number | null;
+}
+
+// Claude Code's own running cost-state tally (billed by Anthropic) is a
+// stronger ground truth than reconstructing cost from assistant message
+// usage: it also reflects usage on requests that never made it into the
+// transcript as a visible assistant line (e.g. retried/aborted calls). Only
+// the main session's own lines are considered — a sub-agent's cost-state (if
+// any) covers a separate billing session, not a subset of the parent's.
+function findGroundTruthCost(lines: JsonlLine[]): number | null {
+	let cost: number | null = null;
+	for (const line of lines) {
+		if (isCostStateLine(line) && typeof line.totalCostUSD === "number") {
+			cost = line.totalCostUSD;
+		}
+	}
+	return cost;
 }
 
 function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
@@ -805,6 +825,7 @@ function collectUsage(lineGroups: JsonlLine[][]): UsageAggregation {
 		cost: hasPricedUsage ? cost : null,
 		modelLabels: [...modelLabels],
 		unpricedModels: [...unpricedModels],
+		groundTruthCost: findGroundTruthCost(lineGroups[0] ?? []),
 	};
 }
 
@@ -994,7 +1015,14 @@ function renderUsageSummary(ctx: RenderContext): void {
 		);
 	}
 
-	if (ctx.usageCost !== null) {
+	if (ctx.usageGroundTruthCost !== null) {
+		// Reported directly by Claude Code — includes usage our own
+		// reconstruction can't see (e.g. retried/aborted requests), so prefer
+		// it over the estimate derived from visible assistant messages.
+		lines.push(
+			`- **Actual cost:** $${ctx.usageGroundTruthCost.toFixed(2)} (reported by Claude Code)`,
+		);
+	} else if (ctx.usageCost !== null) {
 		const modelLabel =
 			ctx.usageModelLabels.length === 1
 				? ctx.usageModelLabels[0]

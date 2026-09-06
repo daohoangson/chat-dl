@@ -279,6 +279,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("bash_output_audience_note"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("batching_reminder_sent"),
 		...attachmentPayloadFields,
 	}),
@@ -459,6 +463,28 @@ const frameLinkLineSchema = v.looseObject({
 
 export type FrameLinkLine = v.InferOutput<typeof frameLinkLineSchema>;
 
+// Claude Code's own authoritative running cost/usage tally for this session
+// (billed by Anthropic) — a stronger ground truth than reconstructing cost
+// from assistant message usage, since it also reflects usage on requests that
+// never made it into the transcript as a visible assistant line (e.g.
+// retried/aborted calls).
+const costStateModelUsageSchema = v.looseObject({
+	inputTokens: v.optional(v.number()),
+	outputTokens: v.optional(v.number()),
+	cacheReadInputTokens: v.optional(v.number()),
+	cacheCreationInputTokens: v.optional(v.number()),
+	costUSD: v.optional(v.number()),
+});
+
+const costStateLineSchema = v.looseObject({
+	type: v.literal("cost-state"),
+	totalCostUSD: v.optional(v.number()),
+	hasUnknownModelCost: v.optional(v.boolean()),
+	modelUsage: v.optional(v.record(v.string(), costStateModelUsageSchema)),
+});
+
+export type CostStateLine = v.InferOutput<typeof costStateLineSchema>;
+
 const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("agent-name") }),
 	v.looseObject({ type: v.literal("artifact-autoreact-ledger") }),
@@ -487,6 +513,7 @@ export const jsonlLineSchema = v.variant("type", [
 	customTitleLineSchema,
 	prLinkLineSchema,
 	frameLinkLineSchema,
+	costStateLineSchema,
 	...skippedJsonlLineSchema.options,
 ]);
 
@@ -527,4 +554,8 @@ export function isPrLinkLine(line: JsonlLine): line is PrLinkLine {
 
 export function isFrameLinkLine(line: JsonlLine): line is FrameLinkLine {
 	return line.type === "frame-link";
+}
+
+export function isCostStateLine(line: JsonlLine): line is CostStateLine {
+	return line.type === "cost-state";
 }
