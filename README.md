@@ -86,6 +86,8 @@ npx chat-dl --existing-chrome <protected-share-url>
 
 ## Development
 
+Requires Node.js `^22.13.0 || >=23.4.0`.
+
 ```bash
 npm install
 npm start -- <url>
