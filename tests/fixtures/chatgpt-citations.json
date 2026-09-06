@@ -1,0 +1,38 @@
+[
+	{
+		"id": "cited",
+		"author": {
+			"role": "assistant",
+			"metadata": {}
+		},
+		"content": {
+			"content_type": "text",
+			"parts": ["First [a], second [b]."]
+		},
+		"metadata": {
+			"content_references": [
+				{
+					"type": "webpage_extended",
+					"start_idx": 6,
+					"end_idx": 9,
+					"title": "Example source",
+					"url": "https://example.com/source",
+					"snippet": "Synthetic evidence.",
+					"attribution": "example.com"
+				},
+				{
+					"type": "grouped_webpages",
+					"start_idx": 18,
+					"end_idx": 21,
+					"items": [
+						{
+							"title": "Example source",
+							"url": "https://example.com/source",
+							"snippet": "Synthetic evidence."
+						}
+					]
+				}
+			]
+		}
+	}
+]

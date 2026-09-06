@@ -12,6 +12,8 @@
 		"format": "npx @biomejs/biome format --write .",
 		"lint": "npx @biomejs/biome lint --write .",
 		"start": "tsx src/bin/chat-dl.ts",
+		"test": "node --import tsx --test tests/*.test.ts",
+		"test:integration": "tsx scripts/verify-urls.ts",
 		"verify:claude-jsonl": "tsx scripts/verify-claude-jsonl.ts",
 		"verify:codex-jsonl": "tsx scripts/verify-codex-jsonl.ts",
 		"verify:kiro-jsonl": "tsx scripts/verify-kiro-jsonl.ts",

@@ -1,0 +1,39 @@
+[
+	{
+		"id": "user",
+		"author": {
+			"role": "user"
+		},
+		"content": {
+			"content_type": "text",
+			"parts": ["Show an example."]
+		},
+		"metadata": {}
+	},
+	{
+		"id": "assistant",
+		"author": {
+			"role": "assistant",
+			"metadata": {}
+		},
+		"content": {
+			"content_type": "code",
+			"language": "json",
+			"text": "{\"ok\":true}"
+		},
+		"metadata": {}
+	},
+	{
+		"id": "hidden",
+		"author": {
+			"role": "system"
+		},
+		"content": {
+			"content_type": "text",
+			"parts": ["REDACTED"]
+		},
+		"metadata": {
+			"is_redacted": true
+		}
+	}
+]
