@@ -16,6 +16,7 @@
 		"verify:codex-jsonl": "tsx scripts/verify-codex-jsonl.ts",
 		"verify:kiro-jsonl": "tsx scripts/verify-kiro-jsonl.ts",
 		"verify:opencode": "tsx scripts/verify-opencode.ts",
+		"verify:puppeteer": "tsx scripts/verify-puppeteer.ts",
 		"verify:urls": "tsx scripts/verify-urls.ts",
 		"prebuild": "rm -rf dist",
 		"build": "npm run build:bin && npm run build:cjs",
