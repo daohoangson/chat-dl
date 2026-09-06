@@ -2,6 +2,8 @@ name: Live integration
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
   public-shares:
