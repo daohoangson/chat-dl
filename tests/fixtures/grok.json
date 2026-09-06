@@ -1,0 +1,40 @@
+{
+	"data": {
+		"grokShare": {
+			"items": [
+				{
+					"sender": "User",
+					"message": "Show an example."
+				},
+				{
+					"sender": "Agent",
+					"message": "Example:\n```md\nhello\n```",
+					"thinking_trace": "Check the source.",
+					"deepsearch_headers": [
+						{
+							"header": "Research",
+							"steps": [
+								{
+									"assistant": "Searching",
+									"web_results": [
+										{
+											"favicon": "",
+											"title": "Example source",
+											"url": "https://example.com/source",
+											"snippet": "Synthetic evidence."
+										}
+									]
+								}
+							]
+						}
+					],
+					"post_ids_results": [
+						{
+							"rest_id": "123"
+						}
+					]
+				}
+			]
+		}
+	}
+}

@@ -1,0 +1,6 @@
+{"payload": {"type": "user", "content": "Show an example."}}
+{"payload": {"type": "tool_call", "toolCallId": "tool-1", "toolName": "read", "args": {"path": "example.md"}}}
+{"payload": {"type": "tool_result", "toolCallId": "tool-1", "content": "Example:\n```md\nhello\n```", "success": true}}
+{"payload": {"type": "sub_agent_start", "subSessionId": "child", "subAgentName": "Scout", "prompt": "Check formatting."}}
+{"payload": {"type": "sub_agent_complete", "subSessionId": "child", "response": "Formatting is correct."}}
+{"payload": {"type": "assistant", "content": "Done.", "operationType": "Say"}}

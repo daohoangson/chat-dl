@@ -2,6 +2,8 @@ import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative } from "node:path";
 import type { Provider } from "@/common";
 import {
+	type SessionDiscoveryContext,
+	createCodexSessionDiscoveryContext,
 	getProviderByPath,
 	renderMarkdownFromPath,
 	shouldSkipSubagentDirectory,
@@ -33,6 +35,7 @@ interface CollectResult {
 function collectCandidates(
 	inputDir: string,
 	baseInputDir: string,
+	discoveryContext: SessionDiscoveryContext,
 ): CollectResult {
 	const entries = readdirSync(inputDir, { withFileTypes: true });
 	const candidates: CandidateFile[] = [];
@@ -45,7 +48,11 @@ function collectCandidates(
 			if (shouldSkipSubagentDirectory(entry.name)) {
 				continue;
 			}
-			const subResult = collectCandidates(inputPath, baseInputDir);
+			const subResult = collectCandidates(
+				inputPath,
+				baseInputDir,
+				discoveryContext,
+			);
 			candidates.push(...subResult.candidates);
 			skipped += subResult.skipped;
 			continue;
@@ -56,7 +63,7 @@ function collectCandidates(
 			skipped++;
 			continue;
 		}
-		if (shouldSkipSubagentPath(inputPath)) {
+		if (shouldSkipSubagentPath(inputPath, discoveryContext)) {
 			continue;
 		}
 
@@ -117,11 +124,12 @@ function renderCandidate(
 	candidate: CandidateFile,
 	outputDir: string,
 	baseInputDir: string,
+	discoveryContext: SessionDiscoveryContext,
 ): boolean {
 	const relativePath = relative(baseInputDir, candidate.path);
 
 	try {
-		const markdown = renderMarkdownFromPath(candidate.path);
+		const markdown = renderMarkdownFromPath(candidate.path, discoveryContext);
 
 		// Maintain relative path structure
 		const relativeDir = dirname(relativePath);
@@ -148,13 +156,18 @@ async function handler(args: Dir2mdArgs) {
 	// Ensure output directory exists
 	mkdirSync(output, { recursive: true });
 
-	const { candidates, skipped } = collectCandidates(input, input);
+	const discoveryContext = createCodexSessionDiscoveryContext();
+	const { candidates, skipped } = collectCandidates(
+		input,
+		input,
+		discoveryContext,
+	);
 	const { selected, filtered } = filterCandidates(candidates, args);
 
 	let processed = 0;
 	let errored = 0;
 	for (const candidate of selected) {
-		if (renderCandidate(candidate, output, input)) {
+		if (renderCandidate(candidate, output, input, discoveryContext)) {
 			processed++;
 		} else {
 			errored++;

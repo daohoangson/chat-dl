@@ -86,10 +86,23 @@ npx chat-dl --existing-chrome <protected-share-url>
 
 ## Development
 
+Requires Node.js `^22.13.0 || >=23.4.0`.
+
 ```bash
 npm install
 npm start -- <url>
 ```
+
+### Tests
+
+```bash
+npm test
+```
+
+Runs the offline regression suite against committed synthetic fixtures for
+every supported provider — no network access or personal data required. See
+[`tests/README.md`](tests/README.md) for coverage details and the separate
+live integration workflow.
 
 ### Parser verification
 
@@ -126,3 +139,14 @@ selected candidate but exit non-zero when any export fails:
 ```bash
 npm run verify:bulk-exit-status
 ```
+
+To check the Puppeteer browser-ownership and cleanup logic:
+
+```bash
+npm run verify:puppeteer
+```
+
+The script mocks `puppeteer.connect`/`puppeteer.launch` and asserts that
+borrowed browsers (connected via `PUPPETEER_BROWSER_WS_ENDPOINT`) are only
+disconnected, never closed, while browsers launched by chat-dl itself are
+always closed, including when setup or page cleanup fails.

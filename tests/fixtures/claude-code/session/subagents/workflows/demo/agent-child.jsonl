@@ -1,0 +1,1 @@
+{"type": "assistant", "message": {"model": "claude-sonnet-4-20250514", "content": [{"type": "text", "text": "CHILD PRIVATE DETAIL"}], "usage": {"input_tokens": 20, "output_tokens": 10}}}
