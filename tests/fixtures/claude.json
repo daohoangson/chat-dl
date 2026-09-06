@@ -1,0 +1,36 @@
+{
+	"chat_messages": [
+		{
+			"sender": "human",
+			"content": [
+				{
+					"type": "text",
+					"text": "Show an example."
+				}
+			]
+		},
+		{
+			"sender": "assistant",
+			"content": [
+				{
+					"type": "text",
+					"text": "Here it is."
+				},
+				{
+					"type": "tool_use",
+					"name": "demo",
+					"input": "Example:\n```md\nhello\n```"
+				},
+				{
+					"type": "tool_result",
+					"name": "demo",
+					"content": [
+						{
+							"text": "Example:\n```md\nhello\n```"
+						}
+					]
+				}
+			]
+		}
+	]
+}
