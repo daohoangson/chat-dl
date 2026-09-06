@@ -61,7 +61,11 @@ export type FunctionCallPayload = v.InferOutput<
 
 const functionCallOutputPayloadSchema = v.looseObject({
 	type: v.literal("function_call_output"),
-	call_id: v.string(),
+	id: v.optional(v.string()),
+	// Absent on codex_app-namespaced delegation outputs (e.g.
+	// send_message_to_thread), which have no matching tool call to key off —
+	// `id` is used as the fallback key for those.
+	call_id: v.optional(v.string()),
 	output: v.union([v.string(), messageContentSchema]),
 });
 

@@ -107,7 +107,8 @@ export function renderFromLines(
 		if (!isResponseItemLine(line)) continue;
 		const payload = line.payload;
 		if (isFunctionCallOutputPayload(payload)) {
-			ctx.toolOutputs.set(payload.call_id, payload.output);
+			const key = payload.call_id ?? payload.id;
+			if (key) ctx.toolOutputs.set(key, payload.output);
 		} else if (isCustomToolCallOutputPayload(payload)) {
 			ctx.toolOutputs.set(payload.call_id, payload.output);
 		}
@@ -158,12 +159,8 @@ export function renderFromLines(
 		}
 
 		if (isFunctionCallOutputPayload(payload)) {
-			renderToolOutputIfNeeded(
-				ctx,
-				payload.call_id,
-				payload.output,
-				line.timestamp,
-			);
+			const key = payload.call_id ?? payload.id;
+			if (key) renderToolOutputIfNeeded(ctx, key, payload.output, line.timestamp);
 			continue;
 		}
 
