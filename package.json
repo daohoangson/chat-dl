@@ -15,6 +15,7 @@
 		"test": "node --import tsx --test tests/*.test.ts",
 		"test:integration": "tsx scripts/verify-urls.ts",
 		"verify:browser-response-races": "tsx scripts/verify-browser-response-races.ts",
+		"verify:bulk-exit-status": "tsx scripts/verify-bulk-exit-status.ts",
 		"verify:claude-jsonl": "tsx scripts/verify-claude-jsonl.ts",
 		"verify:codex-discovery": "tsx scripts/verify-codex-discovery.ts",
 		"verify:codex-jsonl": "tsx scripts/verify-codex-jsonl.ts",
