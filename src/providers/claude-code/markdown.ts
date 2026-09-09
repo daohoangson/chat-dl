@@ -411,6 +411,13 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 			}
 			return;
 		}
+		case "deferred_tools_record": {
+			const count = attachment.entries?.length ?? 0;
+			if (count > 0) {
+				pushEventBlock(ctx, `> **Deferred tools listed:** ${count} available`);
+			}
+			return;
+		}
 		case "mcp_instructions_delta": {
 			const summary = formatDeltaSummary(
 				"instructions",

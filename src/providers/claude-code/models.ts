@@ -232,6 +232,7 @@ const attachmentPayloadFields = {
 	data: v.optional(v.unknown()),
 	skillDir: v.optional(v.string()),
 	skillNames: v.optional(v.array(v.string())),
+	entries: v.optional(v.array(v.unknown())),
 	files: v.optional(
 		v.array(
 			v.looseObject({
@@ -295,11 +296,19 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("date"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("date_change"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
 		type: v.literal("deferred_tools_delta"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("deferred_tools_record"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
@@ -316,6 +325,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("edited_text_file"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("environment"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
@@ -343,11 +356,19 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("instructions"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("invoked_skills"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
 		type: v.literal("mcp_instructions_delta"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("model"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
@@ -367,6 +388,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("prompt_snapshot"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("queued_command"),
 		...attachmentPayloadFields,
 	}),
@@ -376,6 +401,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("remote_session_change"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("session_context"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
