@@ -1,0 +1,25 @@
+src/providers/claude-code/markdown.ts
+  073c5205bfd048c8 414-420
+src/providers/claude-code/models.ts
+  073c5205bfd048c8 235,299-301,311-313,331-333,359-361,371-373,391-393,407-409
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.0.32",
+  "base_commit_sha": "5e7b553649099e77a3feb209f88e132454462015",
+  "prompts": {
+    "073c5205bfd048c8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c2261edc-b901-4534-b17e-49f29e80e69d",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dao Hoang Son <daohoangson@gmail.com>",
+      "messages": [],
+      "total_additions": 36,
+      "total_deletions": 0,
+      "accepted_lines": 36,
+      "overriden_lines": 0
+    }
+  }
+}
