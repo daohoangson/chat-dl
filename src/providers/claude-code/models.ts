@@ -424,6 +424,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("thinking_stripped"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("total_tokens_reminder"),
 		...attachmentPayloadFields,
 	}),
