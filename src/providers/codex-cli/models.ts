@@ -141,6 +141,15 @@ export type ToolSearchOutputPayload = v.InferOutput<
 	typeof toolSearchOutputPayloadSchema
 >;
 
+// A history-compaction marker; content is opaquely encrypted, nothing to render.
+const compactionPayloadSchema = v.looseObject({
+	type: v.literal("compaction"),
+	id: v.optional(v.string()),
+	encrypted_content: v.optional(v.string()),
+});
+
+export type CompactionPayload = v.InferOutput<typeof compactionPayloadSchema>;
+
 const agentMessagePayloadSchema = v.looseObject({
 	type: v.literal("agent_message"),
 	author: v.string(),
@@ -168,6 +177,7 @@ export const responseItemPayloadSchema = v.variant("type", [
 	toolSearchCallPayloadSchema,
 	toolSearchOutputPayloadSchema,
 	agentMessagePayloadSchema,
+	compactionPayloadSchema,
 ]);
 
 export type ResponseItemPayload = v.InferOutput<
