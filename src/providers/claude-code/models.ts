@@ -356,6 +356,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("hook_system_message"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("instructions"),
 		...attachmentPayloadFields,
 	}),
