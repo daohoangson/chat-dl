@@ -160,7 +160,8 @@ export function renderFromLines(
 
 		if (isFunctionCallOutputPayload(payload)) {
 			const key = payload.call_id ?? payload.id;
-			if (key) renderToolOutputIfNeeded(ctx, key, payload.output, line.timestamp);
+			if (key)
+				renderToolOutputIfNeeded(ctx, key, payload.output, line.timestamp);
 			continue;
 		}
 
