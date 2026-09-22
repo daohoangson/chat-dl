@@ -453,6 +453,19 @@ function renderAttachmentLine(ctx: RenderContext, line: AttachmentLine): void {
 			}
 			return;
 		}
+		case "task_status": {
+			const status = attachment.status?.trim();
+			if (!status) {
+				return;
+			}
+			const kind = attachment.taskType ?? attachment.shell?.kind ?? "task";
+			const description = attachment.description?.trim();
+			pushEventBlock(
+				ctx,
+				`> **Background task (${kind}):** ${status}${description ? ` — ${description}` : ""}`,
+			);
+			return;
+		}
 		case "async_hook_response": {
 			if (
 				!isMeaningfulHookResponse(

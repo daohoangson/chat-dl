@@ -256,6 +256,19 @@ const attachmentPayloadFields = {
 			}),
 		),
 	),
+	taskId: v.optional(v.string()),
+	taskType: v.optional(v.string()),
+	description: v.optional(v.string()),
+	status: v.optional(v.string()),
+	deltaSummary: v.optional(v.union([v.string(), v.null()])),
+	outputFilePath: v.optional(v.string()),
+	shell: v.optional(
+		v.looseObject({
+			command: v.optional(v.string()),
+			kind: v.optional(v.string()),
+			toolUseId: v.optional(v.string()),
+		}),
+	),
 };
 
 const attachmentPayloadSchema = v.variant("type", [
@@ -425,6 +438,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("task_reminder"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("task_status"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
