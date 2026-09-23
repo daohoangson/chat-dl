@@ -701,6 +701,30 @@ function getPricing(model: string | null): PricingInfo | null {
 		};
 	}
 
+	// Added 2026-09-24, verified against live OpenAI docs.
+	if (normalized.startsWith("gpt-6-sol")) {
+		return {
+			modelLabel: "gpt-6-sol",
+			input: 2,
+			cacheRead: 0.2,
+			cacheWrite: 2.5,
+			output: 10,
+			...longContext272k,
+		};
+	}
+
+	// Added 2026-09-24, verified against live OpenAI docs.
+	if (normalized.startsWith("gpt-6-luna")) {
+		return {
+			modelLabel: "gpt-6-luna",
+			input: 0.1,
+			cacheRead: 0.01,
+			cacheWrite: 0.125,
+			output: 0.5,
+			...longContext272k,
+		};
+	}
+
 	if (normalized.startsWith("gpt-5.6-terra")) {
 		// Updated 2026-08-16 for the 2026-07-30 OpenAI price cut.
 		return {
@@ -736,6 +760,29 @@ function getPricing(model: string | null): PricingInfo | null {
 			...longContext272k,
 		};
 	}
+
+	// Previously fell through to the gpt-5 catch-all ($1.25/$10). Only the
+	// published gpt-5.5 / gpt-5.5-pro IDs are priced; unlisted variants (e.g.
+	// gpt-5.5-luna) stay unpriced rather than borrowing a wrong rate.
+	if (normalized.startsWith("gpt-5.5-pro")) {
+		return {
+			modelLabel: "gpt-5.5-pro",
+			input: 30,
+			cacheRead: 30,
+			output: 180,
+		};
+	}
+
+	if (normalized === "gpt-5.5") {
+		return {
+			modelLabel: "gpt-5.5",
+			input: 5,
+			cacheRead: 0.5,
+			output: 30,
+		};
+	}
+
+	if (normalized.startsWith("gpt-5.5")) return null;
 
 	if (normalized.startsWith("gpt-5.3-codex")) {
 		return {

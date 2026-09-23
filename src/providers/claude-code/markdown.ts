@@ -882,9 +882,18 @@ function calculateUsageCost(usage: Usage, pricing: PricingInfo): number {
 	const outputRate = isFast
 		? (pricing.fastOutput ?? pricing.output)
 		: pricing.output;
-	const cacheWrite5mRate = isFast ? inputRate * 1.25 : pricing.cacheWrite5m;
-	const cacheWrite1hRate = isFast ? inputRate * 2 : pricing.cacheWrite1h;
-	const cacheReadRate = isFast ? inputRate * 0.1 : pricing.cacheRead;
+	// Cache multipliers stack on top of the fast rate; derive them from the
+	// model's standard ratios since some models (e.g. Opus 5.5 at 0.05x) don't
+	// use the usual 0.1x cache-read multiplier.
+	const cacheWrite5mRate = isFast
+		? inputRate * (pricing.cacheWrite5m / pricing.input)
+		: pricing.cacheWrite5m;
+	const cacheWrite1hRate = isFast
+		? inputRate * (pricing.cacheWrite1h / pricing.input)
+		: pricing.cacheWrite1h;
+	const cacheReadRate = isFast
+		? inputRate * (pricing.cacheRead / pricing.input)
+		: pricing.cacheRead;
 	const geographyMultiplier = usage.inference_geo === "us" ? 1.1 : 1;
 
 	return (
@@ -936,6 +945,18 @@ const PRICING = {
 		cacheRead: 0.08,
 	},
 	// Sonnet 5's $2/$10 introductory price became permanent (the scheduled
+	// Opus 5.5 is cheaper than Opus 5 and uses a 0.05x cache-hit multiplier —
+	// added 2026-09-24, verified against live Anthropic docs.
+	opus55: {
+		modelLabel: "claude-opus-5.5",
+		input: 4,
+		output: 20,
+		cacheWrite5m: 5,
+		cacheWrite1h: 8,
+		cacheRead: 0.2,
+		fastInput: 8,
+		fastOutput: 40,
+	},
 	// 2026-09-01 increase to $3/$15 was cancelled) — added 2026-08-16, verified
 	// against live Anthropic docs.
 	sonnet5: {
@@ -1060,6 +1081,9 @@ function renderUsageSummary(ctx: RenderContext): void {
 		);
 	}
 
+	if (normalized.includes("opus-5-5") || normalized.includes("opus-5.5")) {
+		return PRICING.opus55;
+	}
 	ctx.markdown.push(lines.join("\n"));
 }
 
