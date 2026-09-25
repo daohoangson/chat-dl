@@ -256,6 +256,7 @@ const attachmentPayloadFields = {
 			}),
 		),
 	),
+	organizationUuid: v.optional(v.string()),
 	taskId: v.optional(v.string()),
 	taskType: v.optional(v.string()),
 	description: v.optional(v.string()),
@@ -306,6 +307,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("compact_file_reference"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("credential_org"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
