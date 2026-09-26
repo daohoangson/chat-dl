@@ -1,10 +1,10 @@
 import { writeFileSync } from "node:fs";
+import type { CommandModule } from "yargs";
 import {
 	downloadJsonFromUrl,
 	isLocalPath,
 	parseJsonFromPath,
 } from "@/providers";
-import type { CommandModule } from "yargs";
 
 interface Url2jsonArgs {
 	existingChrome: boolean;

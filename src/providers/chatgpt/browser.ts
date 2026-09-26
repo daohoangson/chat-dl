@@ -1,7 +1,7 @@
 import readline from "node:readline";
 import zlib from "node:zlib";
-import { newBrowserPage } from "@/common";
 import { minify } from "@putout/minify";
+import { newBrowserPage } from "@/common";
 
 async function compressString(str: string) {
 	const stream = new Blob([str])
@@ -105,7 +105,7 @@ function waitForHuman(url: string): Promise<unknown[] | undefined> {
 			try {
 				// taking a leap of faith...
 				resolve(JSON.parse(decompressString(answer)));
-			} catch (e) {
+			} catch {
 				resolve(undefined);
 			} finally {
 				rl.close();

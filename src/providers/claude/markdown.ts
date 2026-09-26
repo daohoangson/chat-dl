@@ -1,11 +1,11 @@
 import * as v from "valibot";
 import { formatCodeBlock } from "../../common/markdown";
 import {
-	repl,
+	artifacts as artifactModels,
 	type ContentToolResult,
 	type ContentToolUse,
 	type Message,
-	artifacts as artifactModels,
+	repl,
 } from "./models";
 
 interface RenderContext {
