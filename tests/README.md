@@ -41,8 +41,11 @@ The existing `verify:*-jsonl` and `verify:opencode` commands remain opt-in local
 diagnostics against user-selected/personal transcript stores. They are not run by
 `npm test` or ordinary CI.
 
-X may deny fresh headless browsers with HTTP 403. To check a Grok share in
-visible Chrome, run `PUPPETEER_HEADLESS=false npm run test:integration -- grok`.
+X denies fresh headless browsers with HTTP 403, so the live Grok fixture is
+marked blocked and skipped by default, like Claude. To try it in visible Chrome,
+run `PUPPETEER_HEADLESS=false npm run test:integration -- grok --blocked`.
+Success is reported as `FIXED?` with a nonzero exit status because the fixture
+is marked blocked; reassess that expectation only if headless access also works.
 A denied page now reports its HTTP status promptly; it does not count as a
 successful export. Both HTML bootstrap data and legacy GrokShare API responses
 are supported.
