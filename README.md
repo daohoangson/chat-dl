@@ -88,6 +88,10 @@ npx chat-dl --existing-chrome <protected-share-url>
 
 Requires Node.js `^22.13.0 || >=23.4.0`.
 
+The `tsup` esbuild override uses the project's direct esbuild dependency to
+avoid the vulnerable 0.27 release line. Remove the override when `tsup` supports
+the patched version in its own dependency range.
+
 ```bash
 npm install
 npm start -- <url>
