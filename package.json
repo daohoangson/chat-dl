@@ -54,6 +54,11 @@
 		"valibot": "^1.0.0",
 		"yargs": "^18.0.0"
 	},
+	"overrides": {
+		"tsup": {
+			"esbuild": "$esbuild"
+		}
+	},
 	"engines": {
 		"node": "^22.13.0 || >=23.4.0"
 	}
