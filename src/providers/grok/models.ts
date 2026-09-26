@@ -63,7 +63,7 @@ export type PostIdResult = v.InferOutput<typeof postIdResultSchema>;
 const agentItemSchema = v.object({
 	sender: v.literal("Agent"),
 	message: v.string(),
-	deepsearch_headers: v.optional(
+	deepsearch_headers: v.nullish(
 		v.array(
 			v.object({
 				header: v.string(),
@@ -86,8 +86,8 @@ const agentItemSchema = v.object({
 			}),
 		),
 	),
-	post_ids_results: v.optional(v.array(postIdResultSchema)),
-	thinking_trace: v.optional(v.string()),
+	post_ids_results: v.nullish(v.array(postIdResultSchema)),
+	thinking_trace: v.nullish(v.string()),
 });
 
 const userItemSchema = v.object({

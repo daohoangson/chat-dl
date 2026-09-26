@@ -48,10 +48,13 @@ async function verify(provider: string, responseUrl: string) {
 				request: () => ({ method: () => method }),
 				url: () => url,
 				json: async () => payload,
+				ok: () => true,
 			}) as HTTPResponse;
 		const page: Partial<Page> = {
+			evaluateOnNewDocument: async () => ({ identifier: "test" }),
+			evaluate: async () => undefined,
 			waitForResponse: (predicate, options) => {
-				assert.equal(options?.timeout, 300_000);
+				assert.equal(options?.timeout, provider === "grok" ? 30_000 : 300_000);
 				assert.ok(options.signal);
 				assert.equal(typeof predicate, "function");
 				active = true;
