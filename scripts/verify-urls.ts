@@ -51,7 +51,8 @@ const fixtures: Fixture[] = [
 		provider: "grok",
 		headings: 16,
 		minBytes: 12_000,
-		expect: "pass",
+		expect: "blocked",
+		note: "X denies headless Chrome with HTTP 403; use visible Chrome",
 	},
 ];
 
