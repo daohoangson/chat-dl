@@ -1,12 +1,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
+import type { CommandModule } from "yargs";
 import type { OpenCodeSession } from "@/providers/opencode";
 import {
 	listSessionsFromPath,
 	renderMarkdownFromPath,
 } from "@/providers/opencode";
-import type { CommandModule } from "yargs";
 
 interface OpenCode2mdArgs {
 	database: string;

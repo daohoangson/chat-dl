@@ -1,5 +1,5 @@
 import { Cache } from "file-system-cache";
-import { type Provider, getProviderByUrl } from "../src/common";
+import { getProviderByUrl, type Provider } from "../src/common";
 import { renderMarkdownFromUrl } from "../src/providers";
 
 // shared conversations are frozen, so a healthy provider returns the same

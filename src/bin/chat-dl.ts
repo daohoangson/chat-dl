@@ -1,5 +1,5 @@
-import { dir2md, json2md, opencode2md, url2json, url2md } from "@/commands";
 import yargs from "yargs";
+import { dir2md, json2md, opencode2md, url2json, url2md } from "@/commands";
 
 yargs(process.argv.slice(2))
 	.command(dir2md)

@@ -1,10 +1,10 @@
 import { writeFileSync } from "node:fs";
+import type { CommandModule } from "yargs";
 import {
 	isLocalPath,
 	renderMarkdownFromPath,
 	renderMarkdownFromUrl,
 } from "@/providers";
-import type { CommandModule } from "yargs";
 
 interface Url2mdArgs {
 	existingChrome: boolean;
