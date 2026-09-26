@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
+
 import CDP = require("chrome-remote-interface");
 
 export interface CdpPage {
