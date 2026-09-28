@@ -382,6 +382,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("inlined_image_paths"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("invoked_skills"),
 		...attachmentPayloadFields,
 	}),
@@ -447,6 +451,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("task_status"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("thinking_drop"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
