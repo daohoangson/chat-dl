@@ -184,6 +184,7 @@ const systemLineSchema = v.looseObject({
 			v.literal("informational"),
 			v.literal("local_command"),
 			v.literal("model_refusal_fallback"),
+			v.literal("model_refusal_no_fallback"),
 			v.literal("scheduled_task_fire"),
 			v.literal("stop_hook_summary"),
 			v.literal("turn_duration"),
