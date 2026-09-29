@@ -5,3 +5,4 @@
 {"type": "attachment", "attachment": {"type": "inlined_image_paths", "paths": ["/tmp/example.png"]}}
 {"type": "attachment", "attachment": {"type": "thinking_drop", "requestId": "request-1", "thinkingBlocksSent": 1}}
 {"type": "system", "subtype": "model_refusal_no_fallback", "content": "", "level": "warning"}
+{"type": "history-suppression", "sessionId": "session-1", "cause": "restored_owner_mismatch"}

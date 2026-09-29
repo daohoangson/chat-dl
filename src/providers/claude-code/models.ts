@@ -543,6 +543,7 @@ const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("file-history-delta") }),
 	v.looseObject({ type: v.literal("file-history-snapshot") }),
 	v.looseObject({ type: v.literal("fork-context-ref") }),
+	v.looseObject({ type: v.literal("history-suppression") }),
 	v.looseObject({ type: v.literal("last-prompt") }),
 	v.looseObject({ type: v.literal("mode") }),
 	v.looseObject({ type: v.literal("progress") }),
