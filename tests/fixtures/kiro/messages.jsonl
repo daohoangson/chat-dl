@@ -4,3 +4,4 @@
 {"payload": {"type": "sub_agent_start", "subSessionId": "child", "subAgentName": "Scout", "prompt": "Check formatting."}}
 {"payload": {"type": "sub_agent_complete", "subSessionId": "child", "response": "Formatting is correct."}}
 {"payload": {"type": "assistant", "content": "Done.", "operationType": "Say"}}
+{"payload": {"type": "agent_note", "content": "<session_context>Internal context</session_context>"}}

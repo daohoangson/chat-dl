@@ -115,9 +115,9 @@ export function renderFromLines(
 		} else if (isContextualHookInvokedPayload(payload)) {
 			renderContextualHookInvoked(ctx, payload);
 		}
-		// Other event types (session_start, session_event, pending_interaction,
-		// interaction_resolved, steering_inclusion) are internal bookkeeping and
-		// are skipped.
+		// Other event types (agent_note, session_start, session_event,
+		// pending_interaction, interaction_resolved, steering_inclusion) are
+		// internal bookkeeping and are skipped.
 	}
 
 	// Flush any tool calls that never received a result (session cut off mid-call)

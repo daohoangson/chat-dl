@@ -160,6 +160,7 @@ export type ContextualHookInvokedPayload = v.InferOutput<
 // Tool-approval prompts. Skipped: the outcome is already reflected in the
 // corresponding tool_call's `status` field.
 const skippedPayloadSchema = v.variant("type", [
+	v.looseObject({ type: v.literal("agent_note") }),
 	v.looseObject({ type: v.literal("pending_interaction") }),
 	v.looseObject({ type: v.literal("interaction_resolved") }),
 ]);
