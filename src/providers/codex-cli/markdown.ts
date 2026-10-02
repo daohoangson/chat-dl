@@ -690,6 +690,18 @@ function getPricing(model: string | null): PricingInfo | null {
 		longContextOutputMultiplier: 1.5,
 	};
 
+	// Added 2026-10-02 from the official OpenAI GPT-6.1 Sol model page.
+	if (normalized.startsWith("gpt-6.1-sol")) {
+		return {
+			modelLabel: "gpt-6.1-sol",
+			input: 2,
+			cacheRead: 0.1,
+			cacheWrite: 2.5,
+			output: 10,
+			...longContext272k,
+		};
+	}
+
 	if (normalized.startsWith("gpt-6-astra")) {
 		return {
 			modelLabel: "gpt-6-astra",

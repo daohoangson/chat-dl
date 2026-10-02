@@ -53,6 +53,44 @@ for (const { name, api, path } of localProviders) {
 	}
 }
 
+test("Claude Code prices Sonnet 5.5 independently from Sonnet 5", () => {
+	const markdown = claudeCode.renderMarkdownFromJson([
+		{
+			type: "assistant",
+			message: {
+				id: "sonnet-5-5-response",
+				model: "claude-sonnet-5-5",
+				content: [{ type: "text", text: "Done." }],
+				usage: { input_tokens: 1_000_000, output_tokens: 1_000_000 },
+			},
+		},
+	]);
+
+	assert.match(markdown, /Estimated cost:\*\* \$12\.00 \(claude-sonnet-5\.5\)/);
+});
+
+test("Codex prices GPT-6.1 Sol cache reads and writes", () => {
+	const markdown = codex.renderMarkdownFromJson([
+		{ type: "turn_context", payload: { model: "gpt-6.1-sol" } },
+		{
+			type: "event_msg",
+			payload: {
+				type: "token_count",
+				info: {
+					last_token_usage: {
+						input_tokens: 250_000,
+						cached_input_tokens: 50_000,
+						cache_write_tokens: 50_000,
+						output_tokens: 100_000,
+					},
+				},
+			},
+		},
+	]);
+
+	assert.match(markdown, /Estimated cost:\*\* \$1\.43 \(gpt-6\.1-sol\)/);
+});
+
 test("ChatGPT citations preserve shared reference and backlink relationships", () => {
 	const markdown = renderMarkdownFromJson({
 		provider: "chatgpt",

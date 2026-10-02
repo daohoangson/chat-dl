@@ -934,6 +934,17 @@ const PRICING = {
 		cacheWrite1h: 4,
 		cacheRead: 0.2,
 	},
+	// Added 2026-10-02 from the official Claude Sonnet 5.5 model page. The
+	// rates match Sonnet 5, but this stays separate so a future Sonnet 5 price
+	// change cannot silently alter Sonnet 5.5 estimates.
+	sonnet55: {
+		modelLabel: "claude-sonnet-5.5",
+		input: 2,
+		output: 10,
+		cacheWrite5m: 2.5,
+		cacheWrite1h: 4,
+		cacheRead: 0.2,
+	},
 	sonnet4Through46: {
 		modelLabel: "claude-sonnet-4/4.5/4.6",
 		input: 3,
@@ -1090,6 +1101,9 @@ function getPricing(model: string | null): PricingInfo | null {
 		return PRICING.haiku35;
 	}
 	if (normalized.includes("haiku")) return PRICING.haiku45;
+	if (normalized.includes("sonnet-5-5") || normalized.includes("sonnet-5.5")) {
+		return PRICING.sonnet55;
+	}
 	if (normalized.includes("sonnet-5")) return PRICING.sonnet5;
 	if (normalized.includes("sonnet")) return PRICING.sonnet4Through46;
 	return null;
