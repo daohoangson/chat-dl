@@ -6,3 +6,4 @@
 {"type": "attachment", "attachment": {"type": "thinking_drop", "requestId": "request-1", "thinkingBlocksSent": 1}}
 {"type": "system", "subtype": "model_refusal_no_fallback", "content": "", "level": "warning"}
 {"type": "history-suppression", "sessionId": "session-1", "cause": "restored_owner_mismatch"}
+{"type": "attachment", "attachment": {"type": "skill_mention", "skillName": "example-skill"}}

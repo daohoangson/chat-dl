@@ -232,6 +232,7 @@ const attachmentPayloadFields = {
 	fileSize: v.optional(v.number()),
 	data: v.optional(v.unknown()),
 	skillDir: v.optional(v.string()),
+	skillName: v.optional(v.string()),
 	skillNames: v.optional(v.array(v.string())),
 	entries: v.optional(v.array(v.unknown())),
 	files: v.optional(
@@ -440,6 +441,10 @@ const attachmentPayloadSchema = v.variant("type", [
 	}),
 	v.looseObject({
 		type: v.literal("skill_listing"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
+		type: v.literal("skill_mention"),
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
