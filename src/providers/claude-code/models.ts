@@ -538,6 +538,9 @@ export type FrameLinkLine = v.InferOutput<typeof frameLinkLineSchema>;
 
 const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("agent-name") }),
+	v.looseObject({ type: v.literal("api-request") }),
+	v.looseObject({ type: v.literal("api-request-blob") }),
+	v.looseObject({ type: v.literal("api-request-shape") }),
 	v.looseObject({ type: v.literal("artifact-autoreact-ledger") }),
 	v.looseObject({ type: v.literal("artifact-comment-monitor") }),
 	v.looseObject({ type: v.literal("atis-latch") }),

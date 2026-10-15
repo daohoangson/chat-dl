@@ -8,3 +8,6 @@
 {"type": "history-suppression", "sessionId": "session-1", "cause": "restored_owner_mismatch"}
 {"type": "attachment", "attachment": {"type": "skill_mention", "skillName": "example-skill"}}
 {"type": "isolation-latch", "side": "connectors", "sessionId": "session-1"}
+{"type": "api-request-shape", "sessionId": "session-1", "shapeHash": "example", "shape": {}}
+{"type": "api-request-blob", "sessionId": "session-1", "hash": "example", "message": {"role": "system", "content": []}}
+{"type": "api-request", "sessionId": "session-1", "id": "request-1", "params": {}}
