@@ -177,6 +177,7 @@ const systemLineSchema = v.looseObject({
 	type: v.literal("system"),
 	subtype: v.optional(
 		v.union([
+			v.literal("agents_killed"),
 			v.literal("api_error"),
 			v.literal("away_summary"),
 			v.literal("bridge_status"),

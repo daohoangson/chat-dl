@@ -11,3 +11,4 @@
 {"type": "api-request-shape", "sessionId": "session-1", "shapeHash": "example", "shape": {}}
 {"type": "api-request-blob", "sessionId": "session-1", "hash": "example", "message": {"role": "system", "content": []}}
 {"type": "api-request", "sessionId": "session-1", "id": "request-1", "params": {}}
+{"type": "system", "subtype": "agents_killed", "sessionId": "session-1"}
