@@ -150,6 +150,11 @@ const compactionPayloadSchema = v.looseObject({
 
 export type CompactionPayload = v.InferOutput<typeof compactionPayloadSchema>;
 
+// Dynamically injected tool definitions are transcript metadata, not content.
+const additionalToolsPayloadSchema = v.looseObject({
+	type: v.literal("additional_tools"),
+});
+
 const agentMessagePayloadSchema = v.looseObject({
 	type: v.literal("agent_message"),
 	author: v.string(),
@@ -166,6 +171,7 @@ const agentMessagePayloadSchema = v.looseObject({
 });
 
 export const responseItemPayloadSchema = v.variant("type", [
+	additionalToolsPayloadSchema,
 	messagePayloadSchema,
 	reasoningPayloadSchema,
 	functionCallPayloadSchema,
