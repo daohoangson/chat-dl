@@ -285,6 +285,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("at_mention_reference"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("agent_listing_delta"),
 		...attachmentPayloadFields,
 	}),

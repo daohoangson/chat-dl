@@ -12,3 +12,4 @@
 {"type": "api-request-blob", "sessionId": "session-1", "hash": "example", "message": {"role": "system", "content": []}}
 {"type": "api-request", "sessionId": "session-1", "id": "request-1", "params": {}}
 {"type": "system", "subtype": "agents_killed", "sessionId": "session-1"}
+{"type": "attachment", "attachment": {"type": "at_mention_reference", "mentions": ["/tmp/example.html"], "unread": "too_large", "fileSize": 1000000, "displayPath": "example.html"}}
