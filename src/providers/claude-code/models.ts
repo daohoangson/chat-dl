@@ -481,6 +481,10 @@ const attachmentPayloadSchema = v.variant("type", [
 		...attachmentPayloadFields,
 	}),
 	v.looseObject({
+		type: v.literal("unknown_command_fallback"),
+		...attachmentPayloadFields,
+	}),
+	v.looseObject({
 		type: v.literal("workflow_keyword_request"),
 		...attachmentPayloadFields,
 	}),
@@ -564,6 +568,7 @@ const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("queue-operation") }),
 	v.looseObject({ type: v.literal("result") }),
 	v.looseObject({ type: v.literal("started") }),
+	v.looseObject({ type: v.literal("tools-used") }),
 ]);
 
 export const jsonlLineSchema = v.variant("type", [
