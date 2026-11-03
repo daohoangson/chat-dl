@@ -15,3 +15,4 @@
 {"type": "attachment", "attachment": {"type": "at_mention_reference", "mentions": ["/tmp/example.html"], "unread": "too_large", "fileSize": 1000000, "displayPath": "example.html"}}
 {"type": "attachment", "attachment": {"type": "unknown_command_fallback", "commandName": "example", "availableCommandNames": [], "availableCommandCount": 0}}
 {"type": "tools-used", "tools": ["Read"], "sessionId": "session-1"}
+{"type": "session-owner", "accountUuid": "account-1", "organizationUuid": "org-1", "sessionId": "session-1"}

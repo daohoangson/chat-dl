@@ -567,6 +567,7 @@ const skippedJsonlLineSchema = v.variant("type", [
 	v.looseObject({ type: v.literal("progress") }),
 	v.looseObject({ type: v.literal("queue-operation") }),
 	v.looseObject({ type: v.literal("result") }),
+	v.looseObject({ type: v.literal("session-owner") }),
 	v.looseObject({ type: v.literal("started") }),
 	v.looseObject({ type: v.literal("tools-used") }),
 ]);
