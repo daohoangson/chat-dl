@@ -68,7 +68,7 @@ function main(): void {
 	for (const file of latestFiles) {
 		try {
 			parseJsonlFromPath(file.path);
-			renderMarkdownFromPath(file.path);
+			renderMarkdownFromPath(file.path, true);
 		} catch (error) {
 			failures.push({
 				path: file.path,

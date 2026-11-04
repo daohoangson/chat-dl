@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseSchemaOrThrow } from "@/common";
+import { type JsonlWarning, parseJsonl, withJsonlWarnings } from "../jsonl";
 import { type RenderOptions, renderFromLines } from "./markdown";
 import { type KiroLine, kiroLineSchema, kiroSessionMetaSchema } from "./models";
 
@@ -10,32 +11,33 @@ export function isSubagentDirectory(name: string): boolean {
 	return name === "sub-executions";
 }
 
-export function parseJsonlFromPath(filePath: string): KiroLine[] {
-	const content = readFileSync(filePath, "utf-8");
-	const lines = content.trim().split("\n");
-
-	const parsed: KiroLine[] = [];
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i];
-		if (!line?.trim()) continue;
-
-		try {
-			const json: unknown = JSON.parse(line);
-			const validated = parseSchemaOrThrow(kiroLineSchema, json);
-			parsed.push(validated);
-		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "Unknown parsing error";
-			throw new Error(`Error parsing line ${i + 1} in ${filePath}: ${message}`);
-		}
-	}
-
-	return parsed;
+export function parseJsonlFromPath(
+	filePath: string,
+	warnings?: JsonlWarning[],
+): KiroLine[] {
+	return parseJsonl(filePath, kiroLineSchema, warnings);
 }
 
-export function renderMarkdownFromPath(filePath: string): string {
-	const lines = parseJsonlFromPath(filePath);
-	return renderFromLines(lines, readSessionMeta(filePath));
+export function renderMarkdownFromPath(
+	filePath: string,
+	strict = false,
+): string {
+	const warnings: JsonlWarning[] = [];
+	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
+	if (
+		warnings.length &&
+		!lines.some(
+			(line) =>
+				line.payload.type === "user" || line.payload.type === "assistant",
+		) &&
+		!warnings.some((warning) => warning.recoveredText)
+	) {
+		throw new Error(`No usable conversation in ${filePath}`);
+	}
+	return withJsonlWarnings(
+		renderFromLines(lines, readSessionMeta(filePath)),
+		warnings,
+	);
 }
 
 export function renderMarkdownFromJson(json: unknown): string {

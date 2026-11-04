@@ -1,7 +1,8 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import * as v from "valibot";
 import { readFirstLine } from "../first-line";
+import { type JsonlWarning, parseJsonl, withJsonlWarnings } from "../jsonl";
 import {
 	type RenderOptions,
 	type RenderSubagentSession,
@@ -70,34 +71,20 @@ const sessionRelationLineSchema = v.looseObject({
 	}),
 });
 
-export function parseJsonlFromPath(filePath: string): CodexCliLine[] {
-	const content = readFileSync(filePath, "utf-8");
-	const lines = content.trim().split("\n");
-
-	const parsed: CodexCliLine[] = [];
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i];
-		if (!line?.trim()) continue;
-
-		try {
-			const json: unknown = JSON.parse(line);
-			const validated = v.parse(codexCliLineSchema, json);
-			parsed.push(validated);
-		} catch (error) {
-			const message =
-				error instanceof Error ? error.message : "Unknown parsing error";
-			throw new Error(`Error parsing line ${i + 1} in ${filePath}: ${message}`);
-		}
-	}
-
-	return parsed;
+export function parseJsonlFromPath(
+	filePath: string,
+	warnings?: JsonlWarning[],
+): CodexCliLine[] {
+	return parseJsonl(filePath, codexCliLineSchema, warnings);
 }
 
 export function renderMarkdownFromPath(
 	filePath: string,
 	context?: SessionDiscoveryContext,
+	strict = false,
 ): string {
-	const lines = parseJsonlFromPath(filePath);
+	const warnings: JsonlWarning[] = [];
+	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
 	const options: RenderOptions = {};
 	const sessionId = getSessionId(lines);
 	if (sessionId) {
@@ -112,12 +99,24 @@ export function renderMarkdownFromPath(
 				parentId: session.parentId,
 				agentNickname: session.agentNickname,
 				agentRole: session.agentRole,
-				lines: parseJsonlFromPath(session.path),
+				lines: parseJsonlFromPath(session.path, strict ? undefined : warnings),
 			}),
 		);
 	}
 
-	return renderFromLines(lines, options);
+	if (
+		warnings.length &&
+		!lines.some(
+			(line) =>
+				line.type === "response_item" &&
+				line.payload.type === "message" &&
+				(line.payload.role === "user" || line.payload.role === "assistant"),
+		) &&
+		!warnings.some((warning) => warning.recoveredText)
+	) {
+		throw new Error(`No usable conversation in ${filePath}`);
+	}
+	return withJsonlWarnings(renderFromLines(lines, options), warnings);
 }
 
 export function renderMarkdownFromJson(json: unknown): string {

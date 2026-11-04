@@ -1,6 +1,6 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { parseSchemaOrThrow } from "@/common";
+import { type JsonlWarning, parseJsonl, withJsonlWarnings } from "../jsonl";
 import { type RenderOptions, renderFromLines } from "./markdown";
 import { type JsonlLine, jsonlLineSchema } from "./models";
 
@@ -11,30 +11,19 @@ export function isSubagentDirectory(name: string): boolean {
 	return name === "subagents";
 }
 
-export function parseJsonlFromPath(filePath: string): JsonlLine[] {
-	const content = readFileSync(filePath, "utf-8");
-	const lines = content.trim().split("\n");
-
-	const parsed: JsonlLine[] = [];
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i];
-		if (line === undefined || !line.trim()) continue;
-
-		try {
-			const json: unknown = JSON.parse(line);
-			const validated = parseSchemaOrThrow(jsonlLineSchema, json);
-			parsed.push(validated);
-		} catch (error) {
-			console.error(`Error parsing line ${i + 1}:`, error);
-			throw error;
-		}
-	}
-
-	return parsed;
+export function parseJsonlFromPath(
+	filePath: string,
+	warnings?: JsonlWarning[],
+): JsonlLine[] {
+	return parseJsonl(filePath, jsonlLineSchema, warnings);
 }
 
-export function renderMarkdownFromPath(filePath: string): string {
-	const lines = parseJsonlFromPath(filePath);
+export function renderMarkdownFromPath(
+	filePath: string,
+	strict = false,
+): string {
+	const warnings: JsonlWarning[] = [];
+	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
 
 	// Sub-agent transcripts live under <sessionId>/subagents/, either flat
 	// (agent-*.jsonl, from the Task tool) or nested under workflows/wf_*/
@@ -49,11 +38,19 @@ export function renderMarkdownFromPath(filePath: string): string {
 	const options: RenderOptions = {};
 	if (existsSync(subagentsDir)) {
 		options.usageLineGroups = collectAgentJsonlPaths(subagentsDir).map(
-			(agentPath) => parseJsonlFromPath(agentPath),
+			(agentPath) =>
+				parseJsonlFromPath(agentPath, strict ? undefined : warnings),
 		);
 	}
 
-	return renderFromLines(lines, options);
+	if (
+		warnings.length &&
+		!lines.some((line) => line.type === "user" || line.type === "assistant") &&
+		!warnings.some((warning) => warning.recoveredText)
+	) {
+		throw new Error(`No usable conversation in ${filePath}`);
+	}
+	return withJsonlWarnings(renderFromLines(lines, options), warnings);
 }
 
 // Recursively collect every agent-*.jsonl transcript under a subagents

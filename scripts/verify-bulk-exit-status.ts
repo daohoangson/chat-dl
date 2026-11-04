@@ -20,12 +20,19 @@ const transcript = JSON.stringify({
 });
 
 for (const command of ["dir2md", "opencode2md"]) {
-	for (const scenario of ["mixed", "success", "malformed", "filtered"]) {
+	for (const scenario of [
+		"mixed",
+		"success",
+		"malformed",
+		"filtered",
+		"unrecoverable",
+	]) {
 		test(`${command}: ${scenario}`, () => {
 			const root = mkdtempSync(join(tmpdir(), "chat-dl-bulk-"));
 			try {
 				const output = join(root, "output");
-				const includeGood = scenario !== "malformed";
+				const includeGood =
+					scenario !== "malformed" && scenario !== "unrecoverable";
 				const includeBad = scenario !== "success";
 				const filtered = scenario === "filtered";
 				let args: string[];
@@ -43,7 +50,11 @@ for (const command of ["dir2md", "opencode2md"]) {
 					if (includeBad) {
 						// Valid first line identifies the provider; the next line fails parsing.
 						const bad = join(input, "bad.jsonl");
-						writeFileSync(bad, `${transcript}\n{malformed`);
+						const firstLine =
+							scenario === "unrecoverable"
+								? '{"type":"session_meta","payload":{}}'
+								: transcript;
+						writeFileSync(bad, `${firstLine}\n{malformed`);
 						utimesSync(bad, 2, 2);
 					}
 					args = [command, input, "--output", output];
@@ -91,17 +102,26 @@ for (const command of ["dir2md", "opencode2md"]) {
 				);
 				assert.ifError(result.error);
 				const diagnostic = `${result.stdout}\n${result.stderr}`;
-				const failed = includeBad && !filtered;
+				const failed =
+					includeBad &&
+					!filtered &&
+					(command === "opencode2md" || scenario === "unrecoverable");
+				const recovered =
+					command === "dir2md" && includeBad && !filtered && !failed;
 				assert.equal(result.status, failed ? 1 : 0, diagnostic);
 				const skipped = command === "dir2md" ? ", Skipped: 1" : "";
 				assert.ok(
 					result.stdout.includes(
-						`Processed: ${includeGood ? 1 : 0}${skipped}, Errored: ${failed ? 1 : 0}, Filtered: ${filtered ? 1 : 0}`,
+						`Processed: ${(includeGood ? 1 : 0) + (recovered ? 1 : 0)}${skipped}, Errored: ${failed ? 1 : 0}, Filtered: ${filtered ? 1 : 0}`,
 					),
 					diagnostic,
 				);
 				assert.equal(existsSync(goodOutput), includeGood, diagnostic);
-				assert.equal(existsSync(badOutput), false, diagnostic);
+				assert.equal(existsSync(badOutput), recovered, diagnostic);
+				if (recovered) {
+					assert.match(result.stderr, /Malformed JSON/);
+					assert.match(readFileSync(badOutput, "utf8"), /Conversion warning/);
+				}
 				if (includeGood)
 					assert.match(readFileSync(goodOutput, "utf8"), /Successful export/);
 				if (failed) assert.match(result.stderr, /✗ bad/);

@@ -1,5 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -52,6 +59,124 @@ for (const { name, api, path } of localProviders) {
 		});
 	}
 }
+
+test("JSONL conversion warns and retains conversation around invalid records", (t) => {
+	const dir = mkdtempSync(join(tmpdir(), "chat-dl-jsonl-"));
+	t.after(() => rmSync(dir, { recursive: true, force: true }));
+	t.mock.method(console, "warn", () => {});
+	const cases = [
+		{
+			api: claudeCode,
+			valid: { type: "user", message: { content: "Before" } },
+			invalid: {
+				type: "assistant",
+				message: { content: [{ type: "future", text: "Recovered" }] },
+			},
+		},
+		{
+			api: codex,
+			valid: {
+				type: "response_item",
+				payload: { type: "message", role: "user", content: "Before" },
+			},
+			invalid: {
+				type: "response_item",
+				payload: {
+					type: "message",
+					role: "assistant",
+					content: [{ type: "future", text: "Recovered" }],
+				},
+			},
+		},
+		{
+			api: kiro,
+			valid: { payload: { type: "user", content: "Before" } },
+			invalid: {
+				payload: {
+					type: "assistant",
+					content: "Recovered",
+					operationType: 123,
+				},
+			},
+		},
+	];
+	for (const [index, { api, valid, invalid }] of cases.entries()) {
+		const file = join(dir, `${index}.jsonl`);
+		writeFileSync(
+			file,
+			[
+				JSON.stringify(valid),
+				JSON.stringify(invalid),
+				"{broken",
+				JSON.stringify({ type: "future_record" }),
+			].join("\n"),
+		);
+		assert.throws(() => api.parseJsonlFromPath(file));
+		const markdown = api.renderMarkdownFromPath(file);
+		assert.match(markdown, /Before/);
+		assert.match(markdown, /Recovered/);
+		assert.match(markdown, /3 record\(s\)/);
+		assert.match(markdown, /Malformed JSON/);
+		assert.match(markdown, /record omitted/);
+	}
+});
+
+test("JSONL conversion fails when damaged input has no recoverable conversation", (t) => {
+	const dir = mkdtempSync(join(tmpdir(), "chat-dl-jsonl-"));
+	t.after(() => rmSync(dir, { recursive: true, force: true }));
+	const file = join(dir, "empty.jsonl");
+	writeFileSync(file, '{"type":"future_metadata"}\n{broken');
+	assert.throws(
+		() => claudeCode.renderMarkdownFromPath(file),
+		/No usable conversation/,
+	);
+});
+
+test("dir2md succeeds with warnings for an unknown record", (t) => {
+	const dir = mkdtempSync(join(tmpdir(), "chat-dl-cli-"));
+	t.after(() => rmSync(dir, { recursive: true, force: true }));
+	const result = spawnSync(
+		process.execPath,
+		[
+			"--import",
+			"tsx",
+			"src/bin/chat-dl.ts",
+			"dir2md",
+			join(fixtures, "recovery"),
+			"--output",
+			dir,
+		],
+		{ cwd: join(__dirname, ".."), encoding: "utf8" },
+	);
+	assert.equal(result.status, 0, result.stderr);
+	assert.match(result.stderr, /future_metadata/);
+	const markdown = readFileSync(join(dir, "session.md"), "utf8");
+	assert.match(markdown, /Conversion warning/);
+	assert.match(markdown, /Before the unknown record/);
+	assert.match(markdown, /After the unknown record/);
+});
+
+test("Claude conversion reports invalid subagent records and strict mode rejects them", (t) => {
+	const dir = mkdtempSync(join(tmpdir(), "chat-dl-child-"));
+	t.after(() => rmSync(dir, { recursive: true, force: true }));
+	t.mock.method(console, "warn", () => {});
+	const root = join(dir, "root.jsonl");
+	const childDir = join(dir, "root", "subagents");
+	mkdirSync(childDir, { recursive: true });
+	writeFileSync(
+		root,
+		JSON.stringify({ type: "user", message: { content: "Hello" } }),
+	);
+	writeFileSync(
+		join(childDir, "agent-one.jsonl"),
+		JSON.stringify({ type: "future_record" }),
+	);
+	assert.match(claudeCode.renderMarkdownFromPath(root), /agent-one\.jsonl:1/);
+	assert.throws(
+		() => claudeCode.renderMarkdownFromPath(root, true),
+		/future_record/,
+	);
+});
 
 test("Claude Code prices Sonnet 5.5 independently from Sonnet 5", () => {
 	const markdown = claudeCode.renderMarkdownFromJson([
