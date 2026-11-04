@@ -1,6 +1,9 @@
 import type { AgentResultTweet, Item } from "./models";
 
-export function renderFromItems(items: Item[]): string {
+export function renderFromItems(
+	items: Item[],
+	protect?: import("../../common/secrets").ProtectText,
+): string {
 	const markdown = [];
 
 	for (const item of items) {
@@ -83,7 +86,11 @@ export function renderFromItems(items: Item[]): string {
 			}
 		}
 
-		markdown.push(item.message);
+		markdown.push(
+			item.sender === "User"
+				? (protect?.(item.message, "human message") ?? item.message)
+				: item.message,
+		);
 	}
 
 	return markdown.join("\n\n");

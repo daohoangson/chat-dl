@@ -19,13 +19,16 @@ function cleanResponse(response: string): string {
 	return cleaned.length > 0 ? cleaned : emptyResponse;
 }
 
-export function renderFromTurns(turns: Turn[]): string {
+export function renderFromTurns(
+	turns: Turn[],
+	protect?: import("../../common/secrets").ProtectText,
+): string {
 	const markdown: string[] = [];
 
 	for (const turn of turns) {
 		const [prompt] = turn[2][0];
 		markdown.push("# User");
-		markdown.push(prompt);
+		markdown.push(protect?.(prompt, "human message") ?? prompt);
 
 		const [, [response]] = turn[3][0][0];
 		markdown.push("# Gemini");

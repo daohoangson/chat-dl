@@ -1,4 +1,5 @@
 import { formatCodeBlock } from "../../common/markdown";
+import type { ProtectText } from "../../common/secrets";
 import type {
 	AssistantPayload,
 	ContextualHookInvokedPayload,
@@ -37,6 +38,7 @@ interface PendingSubAgent {
 }
 
 interface RenderContext {
+	protect?: ProtectText | undefined;
 	markdown: string[];
 	lastSender: Sender;
 	modelId: string | undefined;
@@ -51,6 +53,7 @@ interface RenderContext {
 }
 
 export interface RenderOptions {
+	protect?: ProtectText | undefined;
 	title?: string;
 	workspacePaths?: string[];
 	modelId?: string;
@@ -61,6 +64,7 @@ export function renderFromLines(
 	options?: RenderOptions,
 ): string {
 	const ctx: RenderContext = {
+		protect: options?.protect,
 		markdown: [],
 		lastSender: null,
 		modelId: options?.modelId,
@@ -146,7 +150,7 @@ function renderUser(
 	if (!content) return;
 
 	ensureHumanHeader(ctx, timestamp);
-	ctx.markdown.push(content);
+	ctx.markdown.push(ctx.protect?.(content, "human message") ?? content);
 
 	const attachmentCount =
 		(payload.images?.length ?? 0) + (payload.documents?.length ?? 0);
@@ -193,10 +197,12 @@ function renderToolCall(
 	if (body) ctx.markdown.push(body);
 
 	if (result && shouldRenderToolResult(call, result)) {
-		const formatted = formatOutput(result.content ?? "");
+		const content = result.content ?? "";
+		const formatted = formatOutput(content);
 		if (formatted) {
 			ctx.markdown.push("### Output");
-			ctx.markdown.push(formatCodeBlock(formatted.text, formatted.language));
+			const block = formatCodeBlock(formatted.text, formatted.language);
+			ctx.markdown.push(ctx.protect?.(block, "tool output", content) ?? block);
 		}
 	}
 }

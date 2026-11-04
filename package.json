@@ -50,6 +50,8 @@
 		"typescript": "^7.0.0"
 	},
 	"dependencies": {
+		"@secretlint/core": "^13.1.0",
+		"@secretlint/secretlint-rule-preset-recommend": "^13.1.0",
 		"@streamparser/json-node": "^0.0.26",
 		"chrome-remote-interface": "^0.34.0",
 		"file-system-cache": "^2.4.7",

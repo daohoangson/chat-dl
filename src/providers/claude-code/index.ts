@@ -1,5 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
+import type { ProtectText } from "../../common/secrets";
 import { type JsonlWarning, parseJsonl, withJsonlWarnings } from "../jsonl";
 import { type RenderOptions, renderFromLines } from "./markdown";
 import { type JsonlLine, jsonlLineSchema } from "./models";
@@ -21,6 +22,7 @@ export function parseJsonlFromPath(
 export function renderMarkdownFromPath(
 	filePath: string,
 	strict = false,
+	protect?: ProtectText,
 ): string {
 	const warnings: JsonlWarning[] = [];
 	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
@@ -35,7 +37,7 @@ export function renderMarkdownFromPath(
 	const sessionId = basename(filePath, ".jsonl");
 	const subagentsDir = join(dir, sessionId, "subagents");
 
-	const options: RenderOptions = {};
+	const options: RenderOptions = { protect };
 	if (existsSync(subagentsDir)) {
 		options.usageLineGroups = collectAgentJsonlPaths(subagentsDir).map(
 			(agentPath) =>
@@ -50,7 +52,7 @@ export function renderMarkdownFromPath(
 	) {
 		throw new Error(`No usable conversation in ${filePath}`);
 	}
-	return withJsonlWarnings(renderFromLines(lines, options), warnings);
+	return withJsonlWarnings(renderFromLines(lines, options), warnings, protect);
 }
 
 // Recursively collect every agent-*.jsonl transcript under a subagents
@@ -75,8 +77,11 @@ function collectAgentJsonlPaths(dir: string): string[] {
 	return paths;
 }
 
-export function renderMarkdownFromJson(json: unknown): string {
+export function renderMarkdownFromJson(
+	json: unknown,
+	protect?: ProtectText,
+): string {
 	// For consistency with other providers, accept an array of lines
 	const lines = json as JsonlLine[];
-	return renderFromLines(lines);
+	return renderFromLines(lines, { protect });
 }

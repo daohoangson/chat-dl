@@ -1,5 +1,6 @@
 import { homedir, userInfo } from "node:os";
 import { formatCodeBlock } from "../../common/markdown";
+import type { ProtectText } from "../../common/secrets";
 import type {
 	AssistantLine,
 	AttachmentLine,
@@ -49,6 +50,7 @@ interface PricingInfo {
 }
 
 interface RenderContext {
+	protect?: ProtectText | undefined;
 	markdown: string[];
 	toolResults: Map<string, ToolResultContent>;
 	lastSender: Sender;
@@ -67,6 +69,7 @@ interface RenderContext {
 }
 
 export interface RenderOptions {
+	protect?: ProtectText | undefined;
 	usageLineGroups?: JsonlLine[][];
 	includeUsageSummary?: boolean;
 }
@@ -87,6 +90,7 @@ export function renderFromLines(
 	}
 
 	const ctx: RenderContext = {
+		protect: options?.protect,
 		markdown: [],
 		toolResults: new Map(),
 		lastSender: null,
@@ -193,7 +197,9 @@ function renderUserLine(ctx: RenderContext, line: UserLine): void {
 		if (line.timestamp) {
 			ctx.lastUserTimestamp = line.timestamp;
 		}
-		ctx.markdown.push(cleanContent);
+		ctx.markdown.push(
+			ctx.protect?.(cleanContent, "human message") ?? cleanContent,
+		);
 	}
 }
 
@@ -1429,7 +1435,10 @@ function renderToolResultIfExists(
 		const cleanedContent = cleanToolResultContent(textContent);
 		if (cleanedContent.trim()) {
 			parts.push("<details><summary>Output</summary>");
-			parts.push(formatCodeBlock(maskText(ctx, cleanedContent.trim())));
+			const formatted = formatCodeBlock(maskText(ctx, cleanedContent.trim()));
+			parts.push(
+				ctx.protect?.(formatted, "tool output", textContent) ?? formatted,
+			);
 			parts.push("</details>");
 		}
 	}

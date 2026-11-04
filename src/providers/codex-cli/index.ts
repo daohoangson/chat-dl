@@ -1,6 +1,7 @@
 import { readdirSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import * as v from "valibot";
+import type { ProtectText } from "../../common/secrets";
 import { readFirstLine } from "../first-line";
 import { type JsonlWarning, parseJsonl, withJsonlWarnings } from "../jsonl";
 import {
@@ -82,10 +83,11 @@ export function renderMarkdownFromPath(
 	filePath: string,
 	context?: SessionDiscoveryContext,
 	strict = false,
+	protect?: ProtectText,
 ): string {
 	const warnings: JsonlWarning[] = [];
 	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
-	const options: RenderOptions = {};
+	const options: RenderOptions = { protect };
 	const sessionId = getSessionId(lines);
 	if (sessionId) {
 		options.rootSessionId = sessionId;
@@ -116,12 +118,15 @@ export function renderMarkdownFromPath(
 	) {
 		throw new Error(`No usable conversation in ${filePath}`);
 	}
-	return withJsonlWarnings(renderFromLines(lines, options), warnings);
+	return withJsonlWarnings(renderFromLines(lines, options), warnings, protect);
 }
 
-export function renderMarkdownFromJson(json: unknown): string {
+export function renderMarkdownFromJson(
+	json: unknown,
+	protect?: ProtectText,
+): string {
 	const lines = v.parse(v.array(codexCliLineSchema), json);
-	return renderFromLines(lines);
+	return renderFromLines(lines, { protect });
 }
 
 function getSessionId(lines: CodexCliLine[]): string | null {

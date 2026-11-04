@@ -11,15 +11,19 @@ export async function downloadJsonFromUrl(
 	return await cache(cacheKey, () => downloadFromUrl(url, options));
 }
 
-export function renderMarkdownFromJson(json: unknown) {
+export function renderMarkdownFromJson(
+	json: unknown,
+	protect?: import("../../common/secrets").ProtectText,
+) {
 	const shareData = parseSchemaOrThrow(claudeShareSchema, json);
-	return renderFromMessages(shareData.chat_messages);
+	return renderFromMessages(shareData.chat_messages, protect);
 }
 
 export async function renderMarkdownFromUrl(
 	url: string,
 	options: DownloadFromUrlOptions = {},
+	protect?: import("../../common/secrets").ProtectText,
 ) {
 	const { value } = await downloadJsonFromUrl(url, options);
-	return renderMarkdownFromJson(value);
+	return renderMarkdownFromJson(value, protect);
 }

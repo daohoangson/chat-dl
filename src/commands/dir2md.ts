@@ -2,6 +2,7 @@ import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative } from "node:path";
 import type { CommandModule } from "yargs";
 import type { Provider } from "@/common";
+import { SecretRedactor } from "@/common/secrets";
 import {
 	createCodexSessionDiscoveryContext,
 	getProviderByPath,
@@ -19,6 +20,7 @@ interface Dir2mdArgs {
 	provider: string[] | undefined;
 	match: string | undefined;
 	limit: number | undefined;
+	redact: boolean;
 }
 
 interface CandidateFile {
@@ -120,16 +122,23 @@ function filterCandidates(
 	};
 }
 
-function renderCandidate(
+async function renderCandidate(
 	candidate: CandidateFile,
 	outputDir: string,
 	baseInputDir: string,
 	discoveryContext: SessionDiscoveryContext,
-): boolean {
+	redact: boolean,
+): Promise<boolean> {
 	const relativePath = relative(baseInputDir, candidate.path);
 
 	try {
-		const markdown = renderMarkdownFromPath(candidate.path, discoveryContext);
+		const redactor = redact ? new SecretRedactor() : undefined;
+		const rendered = renderMarkdownFromPath(
+			candidate.path,
+			discoveryContext,
+			redactor?.protect,
+		);
+		const markdown = redactor ? await redactor.finish(rendered) : rendered;
 
 		// Maintain relative path structure
 		const relativeDir = dirname(relativePath);
@@ -167,7 +176,15 @@ async function handler(args: Dir2mdArgs) {
 	let processed = 0;
 	let errored = 0;
 	for (const candidate of selected) {
-		if (renderCandidate(candidate, output, input, discoveryContext)) {
+		if (
+			await renderCandidate(
+				candidate,
+				output,
+				input,
+				discoveryContext,
+				args.redact,
+			)
+		) {
 			processed++;
 		} else {
 			errored++;
@@ -185,6 +202,12 @@ export const dir2md: CommandModule<unknown, Dir2mdArgs> = {
 	describe: "Recursively convert all chat files in a directory to markdown",
 	builder: (yargs) => {
 		return yargs
+			.option("redact", {
+				type: "boolean",
+				default: true,
+				description:
+					"Redact detected credentials from human messages and tool output",
+			})
 			.positional("input", {
 				type: "string",
 				description: "Input directory containing chat files (e.g., .jsonl)",

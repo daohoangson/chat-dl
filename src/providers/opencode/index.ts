@@ -1,3 +1,4 @@
+import type { ProtectText } from "../../common/secrets";
 import { renderFromConversation } from "./markdown";
 import type {
 	OpenCodeConversation,
@@ -39,8 +40,12 @@ export function isOpenCodeDatabasePath(filePath: string): boolean {
 export function renderMarkdownFromPath(
 	filePath: string,
 	sessionId: string,
+	protect?: ProtectText,
 ): string {
-	return renderFromConversation(readSessionFromPath(filePath, sessionId));
+	return renderFromConversation(
+		readSessionFromPath(filePath, sessionId),
+		protect,
+	);
 }
 
 export function readSessionFromPath(

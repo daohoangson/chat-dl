@@ -7,12 +7,18 @@ export async function downloadJsonFromUrl(url: string) {
 	return await cache(url, () => downloadFromUrl(url));
 }
 
-export function renderMarkdownFromJson(json: unknown) {
+export function renderMarkdownFromJson(
+	json: unknown,
+	protect?: import("../../common/secrets").ProtectText,
+) {
 	const { items } = parseSchemaOrThrow(grokShareSchema, json).data.grokShare;
-	return renderFromItems(items);
+	return renderFromItems(items, protect);
 }
 
-export async function renderMarkdownFromUrl(url: string) {
+export async function renderMarkdownFromUrl(
+	url: string,
+	protect?: import("../../common/secrets").ProtectText,
+) {
 	const { value } = await downloadJsonFromUrl(url);
-	return renderMarkdownFromJson(value);
+	return renderMarkdownFromJson(value, protect);
 }

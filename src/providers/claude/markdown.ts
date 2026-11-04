@@ -9,6 +9,7 @@ import {
 } from "./models";
 
 interface RenderContext {
+	protect?: import("../../common/secrets").ProtectText | undefined;
 	artifacts: Map<
 		string,
 		{
@@ -19,9 +20,13 @@ interface RenderContext {
 	markdown: string[];
 }
 
-export function renderFromMessages(messages: Message[]): string {
+export function renderFromMessages(
+	messages: Message[],
+	protect?: import("../../common/secrets").ProtectText,
+): string {
 	const markdown: string[] = [];
 	const ctx: RenderContext = {
+		protect,
 		artifacts: new Map(),
 		markdown,
 	};
@@ -29,11 +34,20 @@ export function renderFromMessages(messages: Message[]): string {
 	for (const message of messages) {
 		const sender = message.sender === "human" ? "Human" : "Claude";
 		markdown.push(`# ${sender}`);
+		const humanText =
+			message.sender === "human"
+				? message.content
+						.filter((item) => item.type === "text")
+						.map((item) => item.text)
+						.join("\n\n")
+				: "";
+		if (humanText)
+			markdown.push(protect?.(humanText, "human message") ?? humanText);
 
 		for (const content of message.content) {
 			switch (content.type) {
 				case "text":
-					markdown.push(content.text);
+					if (message.sender !== "human") markdown.push(content.text);
 					break;
 				case "tool_use":
 					renderToolUse(ctx, content);
@@ -135,9 +149,13 @@ function renderToolResult(
 		return false;
 	}
 
-	for (const item of result) {
+	if (result.length > 0) {
 		ctx.markdown.push(`<details><summary>Tool result: ${name}</summary>`);
-		ctx.markdown.push(formatToolResultItem(item));
+		const formatted = result.map(formatToolResultItem).join("\n\n");
+		ctx.markdown.push(
+			ctx.protect?.(formatted, "tool output", JSON.stringify(result)) ??
+				formatted,
+		);
 		ctx.markdown.push("</details>\n\n");
 	}
 	return true;

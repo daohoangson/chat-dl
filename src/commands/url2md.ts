@@ -1,5 +1,6 @@
 import { writeFileSync } from "node:fs";
 import type { CommandModule } from "yargs";
+import { SecretRedactor } from "@/common/secrets";
 import {
 	isLocalPath,
 	renderMarkdownFromPath,
@@ -10,14 +11,21 @@ interface Url2mdArgs {
 	existingChrome: boolean;
 	output: string;
 	url: string;
+	redact: boolean;
 }
 
 async function handler(args: Url2mdArgs) {
-	const markdown = isLocalPath(args.url)
-		? renderMarkdownFromPath(args.url)
-		: await renderMarkdownFromUrl(args.url, {
-				existingChrome: args.existingChrome,
-			});
+	const redactor = args.redact ? new SecretRedactor() : undefined;
+	const rendered = isLocalPath(args.url)
+		? renderMarkdownFromPath(args.url, undefined, redactor?.protect)
+		: await renderMarkdownFromUrl(
+				args.url,
+				{
+					existingChrome: args.existingChrome,
+				},
+				redactor?.protect,
+			);
+	const markdown = redactor ? await redactor.finish(rendered) : rendered;
 
 	if (args.output === "-") {
 		process.stdout.write(markdown);
@@ -32,6 +40,12 @@ export const url2md: CommandModule<unknown, Url2mdArgs> = {
 	describe: "Render markdown from chat URL or local file",
 	builder: (yargs) => {
 		return yargs
+			.option("redact", {
+				type: "boolean",
+				default: true,
+				description:
+					"Redact detected credentials from human messages and tool output",
+			})
 			.positional("url", {
 				type: "string",
 				description:

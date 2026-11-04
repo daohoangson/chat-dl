@@ -171,7 +171,10 @@ function getContentText(content: Content): string {
 	}
 }
 
-export function renderFromMessages(messages: Message[]): string {
+export function renderFromMessages(
+	messages: Message[],
+	protect?: import("../../common/secrets").ProtectText,
+): string {
 	const markdown: string[] = [];
 
 	// Position scopes anchors even when message IDs are missing or duplicated.
@@ -188,6 +191,10 @@ export function renderFromMessages(messages: Message[]): string {
 
 		let text = getContentText(message.content);
 		text = getContentReferences(text, messageIndex, message.metadata);
+		if (message.author.role === "user")
+			text = protect?.(text, "human message") ?? text;
+		else if (message.content.content_type === "execution_output")
+			text = protect?.(text, "tool output") ?? text;
 		if (text.length === 0) {
 			continue;
 		}

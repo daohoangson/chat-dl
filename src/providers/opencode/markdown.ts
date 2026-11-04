@@ -1,4 +1,5 @@
 import { formatCodeBlock } from "@/common/markdown";
+import type { ProtectText } from "@/common/secrets";
 import type {
 	OpenCodeConversation,
 	OpenCodeData,
@@ -8,33 +9,53 @@ import type {
 
 export function renderFromConversation(
 	conversation: OpenCodeConversation,
+	protect?: ProtectText,
 ): string {
 	const markdown = [`# ${conversation.session.title}`];
 
 	for (const message of conversation.messages) {
-		renderMessage(markdown, message);
+		renderMessage(markdown, message, protect);
 	}
 
 	renderUsage(markdown, conversation);
 	return markdown.join("\n\n");
 }
 
-function renderMessage(markdown: string[], message: OpenCodeMessage): void {
+function renderMessage(
+	markdown: string[],
+	message: OpenCodeMessage,
+	protect?: ProtectText,
+): void {
 	const model =
 		message.role === "assistant" ? modelLabel(message.data) : undefined;
 	markdown.push(
 		`## ${message.role === "user" ? "Human" : `OpenCode${model ? ` (${model})` : ""}`}`,
 	);
 
+	const humanText =
+		message.role === "user"
+			? message.parts
+					.filter((part) => part.type === "text")
+					.map((part) => getString(part.text))
+					.filter((text): text is string => Boolean(text))
+					.join("\n\n")
+			: "";
+	if (humanText)
+		markdown.push(protect?.(humanText, "human message") ?? humanText);
 	for (const part of message.parts) {
-		renderPart(markdown, part);
+		if (message.role === "user" && part.type === "text") continue;
+		renderPart(markdown, part, protect);
 	}
 
 	const error = getString(message.data.error);
 	if (error) markdown.push(`> Error: ${error}`);
 }
 
-function renderPart(markdown: string[], part: OpenCodePart): void {
+function renderPart(
+	markdown: string[],
+	part: OpenCodePart,
+	protect?: ProtectText,
+): void {
 	switch (part.type) {
 		case "text": {
 			const text = getString(part.text);
@@ -50,7 +71,7 @@ function renderPart(markdown: string[], part: OpenCodePart): void {
 			break;
 		}
 		case "tool":
-			renderTool(markdown, part);
+			renderTool(markdown, part, protect);
 			break;
 		case "file":
 			renderFile(markdown, part);
@@ -61,7 +82,11 @@ function renderPart(markdown: string[], part: OpenCodePart): void {
 	}
 }
 
-function renderTool(markdown: string[], part: OpenCodePart): void {
+function renderTool(
+	markdown: string[],
+	part: OpenCodePart,
+	protect?: ProtectText,
+): void {
 	const name = getString(part.tool) ?? "unknown";
 	const state = getRecord(part.state);
 	const status = getString(state?.status);
@@ -77,7 +102,8 @@ function renderTool(markdown: string[], part: OpenCodePart): void {
 	}
 	if (output) {
 		blocks.push("\n**Output:**\n");
-		blocks.push(formatCodeBlock(output));
+		const formatted = formatCodeBlock(output);
+		blocks.push(protect?.(formatted, "tool output", output) ?? formatted);
 	}
 	blocks.push("\n</details>");
 	markdown.push(blocks.join("\n"));

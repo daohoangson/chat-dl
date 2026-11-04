@@ -2,11 +2,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { Readable } from "node:stream";
 import { JSONParser } from "@streamparser/json-node";
 import type { CommandModule } from "yargs";
+import { SecretRedactor } from "@/common/secrets";
 import { renderMarkdownFromJson } from "@/providers";
 
 interface Json2mdArgs {
 	input: string;
 	output: string;
+	redact: boolean;
 }
 
 function handler(args: Json2mdArgs) {
@@ -25,9 +27,18 @@ function handler(args: Json2mdArgs) {
 	}
 
 	stream.on("data", ({ value: input }) => {
-		const markdown = renderMarkdownFromJson(input);
-		const outputPath = args.output === "-" ? process.stdout.fd : args.output;
-		writeFileSync(outputPath, markdown);
+		const redactor = args.redact ? new SecretRedactor() : undefined;
+		const rendered = renderMarkdownFromJson(input, redactor?.protect);
+		void (redactor ? redactor.finish(rendered) : Promise.resolve(rendered))
+			.then((markdown) => {
+				const outputPath =
+					args.output === "-" ? process.stdout.fd : args.output;
+				writeFileSync(outputPath, markdown);
+			})
+			.catch((error: unknown) => {
+				console.error(error);
+				process.exitCode = 1;
+			});
 	});
 }
 
@@ -36,6 +47,12 @@ export const json2md: CommandModule<unknown, Json2mdArgs> = {
 	describe: "Render markdown from chat data",
 	builder: (yargs) => {
 		return yargs
+			.option("redact", {
+				type: "boolean",
+				default: true,
+				description:
+					"Redact detected credentials from human messages and tool output",
+			})
 			.option("input", {
 				type: "string",
 				description: 'path to JSON or "-" for stdin',

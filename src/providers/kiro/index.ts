@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { parseSchemaOrThrow } from "@/common";
+import type { ProtectText } from "../../common/secrets";
 import { type JsonlWarning, parseJsonl, withJsonlWarnings } from "../jsonl";
 import { type RenderOptions, renderFromLines } from "./markdown";
 import { type KiroLine, kiroLineSchema, kiroSessionMetaSchema } from "./models";
@@ -21,6 +22,7 @@ export function parseJsonlFromPath(
 export function renderMarkdownFromPath(
 	filePath: string,
 	strict = false,
+	protect?: ProtectText,
 ): string {
 	const warnings: JsonlWarning[] = [];
 	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
@@ -35,15 +37,19 @@ export function renderMarkdownFromPath(
 		throw new Error(`No usable conversation in ${filePath}`);
 	}
 	return withJsonlWarnings(
-		renderFromLines(lines, readSessionMeta(filePath)),
+		renderFromLines(lines, { ...readSessionMeta(filePath), protect }),
 		warnings,
+		protect,
 	);
 }
 
-export function renderMarkdownFromJson(json: unknown): string {
+export function renderMarkdownFromJson(
+	json: unknown,
+	protect?: ProtectText,
+): string {
 	// For consistency with other providers, accept an array of lines
 	const lines = json as KiroLine[];
-	return renderFromLines(lines);
+	return renderFromLines(lines, { protect });
 }
 
 // Sessions are stored as <workspace-hash>/sess_<uuid>/messages.jsonl, with a

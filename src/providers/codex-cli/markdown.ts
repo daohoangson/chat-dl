@@ -1,4 +1,5 @@
 import { formatCodeBlock } from "../../common/markdown";
+import type { ProtectText } from "../../common/secrets";
 import type {
 	CodexCliLine,
 	MessageContent,
@@ -24,6 +25,7 @@ import {
 type Sender = "human" | "assistant" | null;
 
 interface RenderContext {
+	protect?: ProtectText | undefined;
 	markdown: string[];
 	lastSender: Sender;
 	lastModel: string | null;
@@ -64,6 +66,7 @@ interface PricingInfo {
 }
 
 export interface RenderOptions {
+	protect?: ProtectText | undefined;
 	rootSessionId?: string;
 	subagentSessions?: RenderSubagentSession[];
 	includeUsageSummary?: boolean;
@@ -87,6 +90,7 @@ export function renderFromLines(
 		...subagentSessions.map((session) => session.lines),
 	]);
 	const ctx: RenderContext = {
+		protect: options?.protect,
 		markdown: [],
 		lastSender: null,
 		lastModel: null,
@@ -222,7 +226,10 @@ function renderSubagentChildren(
 		// Render the sub-agent minimally — its prompt and final response only,
 		// not the full transcript. Its token usage is still counted via
 		// collectUsage over subagentSessions.
-		const { prompt, response } = extractSubagentSummary(session.lines);
+		const { prompt, response } = extractSubagentSummary(
+			session.lines,
+			ctx.protect,
+		);
 		if (prompt) {
 			ctx.markdown.push("**Prompt:**");
 			ctx.markdown.push(prompt);
@@ -241,7 +248,10 @@ function renderSubagentChildren(
 // sub-agents minimally instead of dumping their full transcript. The first user
 // message is typically pure environment preamble that cleans to empty; the real
 // task(s) arrive in later user turns, so collect every non-empty one.
-function extractSubagentSummary(lines: CodexCliLine[]): {
+function extractSubagentSummary(
+	lines: CodexCliLine[],
+	protect?: ProtectText,
+): {
 	prompt: string | null;
 	response: string | null;
 } {
@@ -258,7 +268,7 @@ function extractSubagentSummary(lines: CodexCliLine[]): {
 
 		if (payload.role === "user") {
 			const cleaned = cleanUserContent(text).trim();
-			if (cleaned) prompts.push(cleaned);
+			if (cleaned) prompts.push(protect?.(cleaned, "human message") ?? cleaned);
 		} else if (payload.role === "assistant") {
 			response = text;
 		}
@@ -301,7 +311,9 @@ function renderMessage(
 		if (timestamp) {
 			ctx.lastUserTimestamp = timestamp;
 		}
-		ctx.markdown.push(cleanContent);
+		ctx.markdown.push(
+			ctx.protect?.(cleanContent, "human message") ?? cleanContent,
+		);
 	}
 }
 
@@ -368,8 +380,12 @@ function renderToolOutput(ctx: RenderContext, output: ToolOutput): void {
 		const formattedOutput = formatOutput(output);
 		if (!formattedOutput) return;
 		ctx.markdown.push("### Output");
+		const formatted = formatCodeBlock(
+			formattedOutput.text,
+			formattedOutput.language,
+		);
 		ctx.markdown.push(
-			formatCodeBlock(formattedOutput.text, formattedOutput.language),
+			ctx.protect?.(formatted, "tool output", output) ?? formatted,
 		);
 		return;
 	}
@@ -380,7 +396,9 @@ function renderToolOutput(ctx: RenderContext, output: ToolOutput): void {
 		.join("\n\n");
 	if (!renderedOutput.trim()) return;
 	ctx.markdown.push("### Output");
-	ctx.markdown.push(renderedOutput);
+	ctx.markdown.push(
+		ctx.protect?.(renderedOutput, "tool output") ?? renderedOutput,
+	);
 }
 
 function renderWebSearchCall(

@@ -67,6 +67,16 @@ npx chat-dl opencode2md --since 2026-08-01 --match my-repo --output ./opencode-t
 npx chat-dl opencode2md ses_... --output chat.md
 ```
 
+### Secret detection
+
+Markdown CLI exports scan human messages and tool outputs locally. When a
+potential credential is detected, the whole message or output is replaced with
+a redaction notice. Assistant messages and tool-call arguments are not scanned.
+Detection can miss credentials and can also redact harmless text; review exports
+before sharing them. JSON exports from `url2json`, cached source data, and direct
+library rendering calls are not redacted.
+Use `--no-redact` to disable Markdown redaction when an exact export is needed.
+
 ### Protected shared links
 
 Some shared links are not publicly accessible and require authentication in

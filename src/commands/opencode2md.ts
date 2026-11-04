@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import type { CommandModule } from "yargs";
+import { SecretRedactor } from "@/common/secrets";
 import type { OpenCodeSession } from "@/providers/opencode";
 import {
 	listSessionsFromPath,
@@ -16,16 +17,17 @@ interface OpenCode2mdArgs {
 	until: string | undefined;
 	match: string | undefined;
 	limit: number | undefined;
+	redact: boolean;
 }
 
-function handler(args: OpenCode2mdArgs): void {
+async function handler(args: OpenCode2mdArgs): Promise<void> {
 	if (!args.sessionId) {
 		if (args.output === "-") {
 			throw new Error(
 				"--output must be a directory when exporting every session",
 			);
 		}
-		exportSessions(args);
+		await exportSessions(args);
 		return;
 	}
 
@@ -40,7 +42,13 @@ function handler(args: OpenCode2mdArgs): void {
 		);
 	}
 
-	const markdown = renderMarkdownFromPath(args.database, args.sessionId);
+	const redactor = args.redact ? new SecretRedactor() : undefined;
+	const rendered = renderMarkdownFromPath(
+		args.database,
+		args.sessionId,
+		redactor?.protect,
+	);
+	const markdown = redactor ? await redactor.finish(rendered) : rendered;
 	if (args.output === "-") {
 		process.stdout.write(markdown);
 		return;
@@ -93,7 +101,7 @@ function filterSessions(
 	};
 }
 
-function exportSessions(args: OpenCode2mdArgs): void {
+async function exportSessions(args: OpenCode2mdArgs): Promise<void> {
 	mkdirSync(args.output, { recursive: true });
 
 	const sessions = listSessionsFromPath(args.database);
@@ -109,7 +117,13 @@ function exportSessions(args: OpenCode2mdArgs): void {
 		const outputPath = join(args.output, relativePath);
 
 		try {
-			const markdown = renderMarkdownFromPath(args.database, session.id);
+			const redactor = args.redact ? new SecretRedactor() : undefined;
+			const rendered = renderMarkdownFromPath(
+				args.database,
+				session.id,
+				redactor?.protect,
+			);
+			const markdown = redactor ? await redactor.finish(rendered) : rendered;
 			mkdirSync(dirname(outputPath), { recursive: true });
 			writeFileSync(outputPath, markdown);
 			console.log(`✓ ${session.id} → ${relativePath}`);
@@ -163,6 +177,12 @@ export const opencode2md: CommandModule<unknown, OpenCode2mdArgs> = {
 	describe: "Render sessions from an OpenCode SQLite database to markdown",
 	builder: (yargs) => {
 		return yargs
+			.option("redact", {
+				type: "boolean",
+				default: true,
+				description:
+					"Redact detected credentials from human messages and tool output",
+			})
 			.positional("sessionId", {
 				type: "string",
 				description:
