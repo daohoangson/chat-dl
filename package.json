@@ -1,6 +1,12 @@
 {
 	"name": "chat-dl",
-	"version": "0.1.0",
+	"version": "0.2.0",
+	"description": "Download and convert AI chat conversations to Markdown.",
+	"license": "MIT",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/daohoangson/chat-dl.git"
+	},
 	"files": [
 		"bin",
 		"dist"
@@ -30,14 +36,12 @@
 		"build": "npm run build:bin && npm run build:cjs",
 		"build:bin": "tsup src/bin",
 		"build:cjs": "tsc --declaration true --noEmit false --outDir dist/cjs",
-		"prepublic": "npm run ci && npm run build",
+		"prepack": "npm run ci && npm run build",
 		"public": "npm publish --access public"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.0",
-		"@putout/minify": "^6.0.0",
 		"@tsconfig/strictest": "^2.0.5",
-		"@types/chrome-remote-interface": "^0.34.0",
 		"@types/yargs": "^17.0.33",
 		"acorn": "^8.14.1",
 		"esbuild": "^0.28.1",
@@ -50,9 +54,11 @@
 		"typescript": "^7.0.0"
 	},
 	"dependencies": {
+		"@putout/minify": "^6.0.0",
 		"@secretlint/core": "^13.1.0",
 		"@secretlint/secretlint-rule-preset-recommend": "^13.1.0",
 		"@streamparser/json-node": "^0.0.26",
+		"@types/chrome-remote-interface": "^0.34.0",
 		"chrome-remote-interface": "^0.34.0",
 		"file-system-cache": "^2.4.7",
 		"puppeteer": "^25.0.0",

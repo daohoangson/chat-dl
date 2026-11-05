@@ -6,7 +6,8 @@ be reused for other providers that need the user's live browser credentials.
 
 ## When To Use
 
-- Public/non-auth links should work with the default Puppeteer path.
+- Public/non-auth links use the default Puppeteer path; bot protection can still
+  block automated access.
 - Protected/authenticated links should use `--existing-chrome`.
 - Do not switch all links to existing Chrome by default. That makes public URLs
   depend on a local Chrome DevTools session and user consent.
@@ -107,19 +108,19 @@ npm run build
 
 ### 1. Public Claude URL, Default Puppeteer Path
 
-The repo currently does not document a dedicated public Claude fixture URL. Use a
-known public share link, or add one to the repo when available.
-
-Example used during this runbook creation:
+The Claude fixture in `scripts/verify-urls.ts` is marked `blocked` because
+headless Chrome encounters a bot check. A public share is not necessarily
+accessible to an automated browser. Use a share confirmed accessible without
+authentication when testing this path:
 
 ```bash
-npm start -- https://claude.ai/share/d205d79c-ee72-4c32-9e89-b0328e6747c1 \
+npm start -- 'https://claude.ai/share/<public-id>' \
   > /tmp/chat-dl-claude-public-default.out 2>&1
 echo $?
 sed -n '1,80p' /tmp/chat-dl-claude-public-default.out
 ```
 
-Expected:
+Expected when bot protection permits access:
 
 - Exit code `0`.
 - Output contains rendered markdown.
@@ -132,21 +133,21 @@ have the user's Chrome credentials:
 
 ```bash
 rm -f .cache/*
-npm start -- https://claude.ai/share/<protected-id> \
+npm start -- 'https://claude.ai/share/<protected-id>' \
   > /tmp/chat-dl-claude-protected-default.out 2>&1
 echo $?
 sed -n '1,120p' /tmp/chat-dl-claude-protected-default.out
 ```
 
-Expected failure shape:
+When Claude returns an authentication error, the CLI reports:
 
 ```text
-permission_error
-Authentication required
-Invalid key: Expected "chat_messages" but received undefined
+Claude API returned a permission_error: ... The shared chat requires authentication; rerun with --existing-chrome against a Chrome session signed in to claude.ai.
 ```
 
-This failure confirms the link is not a public fixture.
+An explicit authentication error identifies a protected link. A navigation
+failure or snapshot timeout alone does not: bot protection can also prevent
+public shares from loading.
 
 ### 3. Protected Claude URL, Existing Chrome Path
 
@@ -154,25 +155,22 @@ Run the same protected URL with `--existing-chrome`:
 
 ```bash
 rm -f .cache/*
-npm start -- --existing-chrome https://claude.ai/share/<protected-id> \
+npm start -- --existing-chrome 'https://claude.ai/share/<protected-id>' \
   > /tmp/chat-dl-claude-existing-chrome.out 2>&1
 echo $?
 sed -n '1,80p' /tmp/chat-dl-claude-existing-chrome.out
 ```
 
-Chrome may show an "Allow remote debugging?" sheet. Click **Allow**. In Codex,
-use Computer Use if needed:
-
-```text
-get_app_state(app="Google Chrome")
-click(app="Google Chrome", element_index="11")
-```
+Chrome may show an "Allow remote debugging?" sheet. Click **Allow**. If using
+computer automation, inspect Chrome's current UI to locate the prompt.
 
 Expected:
 
 - Exit code `0`.
 - A new Claude tab opens in the user's Chrome.
 - Output contains rendered markdown from the protected conversation.
+- The tab created for the download closes when the operation completes; the
+  existing Chrome session stays open.
 
 Clear cache again after verification:
 
@@ -208,5 +206,7 @@ If markdown rendering fails after download:
 If public URL testing fails:
 
 - Verify the URL is truly public in an unsigned browser session.
+- Check whether bot protection is blocking the automated browser; see the
+  current fixture notes in `scripts/verify-urls.ts`.
 - Do not use the protected internal test URL as the public fixture; it returns
   `Authentication required` without existing Chrome credentials.

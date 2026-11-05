@@ -10,11 +10,12 @@ A command-line tool to download and convert AI chat conversations to markdown fo
 | Web Citations | ✅ (content refs) | ❌     | ❌     | ✅ (tweets, web)    |
 | Artifacts     | ❌                | ✅     | ❌     | ❌                  |
 | REPL          | ❌                | ✅     | ❌     | ❌                  |
-| Reasoning     | ❌                | ❌     | ❌     | ✅ (thinking trace) |
+| Reasoning     | ✅ (shared text)  | ❌     | ❌     | ✅ (thinking trace) |
 | Enterprise    | ✅                | ❌     | ❌     | ❌                  |
 
 Gemini accepts both the `share.gemini.google` short link and the
 `gemini.google.com/share/<id>` link it redirects to.
+Local transcripts are supported for Claude Code, Codex CLI, Kiro, and OpenCode.
 
 ## Usage
 
@@ -22,15 +23,15 @@ No installation is required, you can run the CLI directly using `npx`:
 
 ```bash
 # Output to stdout (default)
-npx chat-dl <url>
+npx chat-dl '<url>'
 
 # Save to file
-npx chat-dl --output chat.md <url>
+npx chat-dl --output chat.md '<url>'
 ```
 
 ### Commands
 
-The CLI supports four main commands:
+Available commands:
 
 - `url2md`: Convert a chat URL or local chat file directly to markdown (default)
 - `url2json`: Download chat data from a URL or parse a local chat file as JSON
@@ -54,18 +55,27 @@ cat chat.json | npx chat-dl json2md --output chat.md
 # Convert local Claude Code JSONL transcripts
 npx chat-dl dir2md ~/.claude/projects --output ./claude-transcripts
 
+# Convert local Codex CLI JSONL transcripts
+npx chat-dl dir2md ~/.codex/sessions --output ./codex-transcripts
+
 # Convert local Kiro IDE session transcripts
 npx chat-dl dir2md ~/.kiro/sessions --output ./kiro-transcripts
 
 # Export every top-level OpenCode session (grouped as <sanitized-full-path>/<YYYY-MM-DD>/<session-id>.md)
 npx chat-dl opencode2md --output ./opencode-transcripts
 
-# Same, filtered to sessions updated this month whose directory/title matches
+# Same, filtered by update date and a directory/title substring
 npx chat-dl opencode2md --since 2026-08-01 --match my-repo --output ./opencode-transcripts
 
 # Export one OpenCode session
 npx chat-dl opencode2md ses_... --output chat.md
 ```
+
+Markdown conversion of JSONL transcripts retains usable conversation around
+invalid records and includes warnings when records are omitted or text is
+recovered. It fails if no conversation can be recovered. `url2json` validates
+JSONL records strictly. Bulk exports continue after individual failures and
+return a nonzero exit status if any export fails.
 
 ### Secret detection
 
@@ -91,12 +101,12 @@ For the Chrome DevTools MCP-style auto-connect flow in Chrome 144+:
 3. Run the tool with `--existing-chrome`:
 
 ```bash
-npx chat-dl --existing-chrome <protected-share-url>
+npx chat-dl --existing-chrome '<protected-share-url>'
 ```
 
 ## Development
 
-Requires Node.js `^22.13.0 || >=23.4.0`.
+Use a Node.js version allowed by `engines.node` in [`package.json`](package.json).
 
 The `tsup` esbuild override uses the project's direct esbuild dependency to
 avoid the vulnerable 0.27 release line. Remove the override when `tsup` supports
@@ -104,7 +114,7 @@ the patched version in its own dependency range.
 
 ```bash
 npm install
-npm start -- <url>
+npm start -- '<url>'
 ```
 
 ### Tests
@@ -118,6 +128,14 @@ every supported provider — no network access or personal data required. See
 [`tests/README.md`](tests/README.md) for coverage details and the separate
 live integration workflow.
 
+### Packaging
+
+Run `npm test` before preparing a package. `npm pack` runs the formatting and
+lint checks and rebuilds the CLI, library, and type declarations before creating
+the tarball. Install that tarball in a separate directory to check the published
+CLI and library entry points. `npm run public` publishes to npm and runs the same
+prepack checks.
+
 ### Parser verification
 
 To smoke-test the Claude Code parser and renderer against recent local transcripts:
@@ -126,7 +144,7 @@ To smoke-test the Claude Code parser and renderer against recent local transcrip
 npm run verify:claude-jsonl
 ```
 
-The script checks the latest 100 `.jsonl` files under `~/.claude/projects` by default.
+The script checks recent `.jsonl` files under `~/.claude/projects` by default.
 You can override the source and count with `CLAUDE_PROJECTS_DIR` and
 `CLAUDE_JSONL_LIMIT`.
 
@@ -138,14 +156,14 @@ npm run verify:urls
 
 Each fixture records the heading count its conversation should render, so a
 provider that starts dropping turns fails instead of quietly returning less.
-The run bypasses the download cache, forces headless Chrome, and exits non-zero
+The run bypasses the download cache, defaults to headless Chrome, and exits non-zero
 on any divergence. Pass provider names to narrow it (`npm run verify:urls -- gemini`),
 `--cached` to reuse downloads, and `--blocked` to also attempt fixtures that
 bot protection rejects in headless Chrome.
 
 Fixtures recorded as `broken` or `blocked` document providers that are already
-failing: they do not fail the run, but they are reported as `FIXED?` if they
-start working, so the list stays honest.
+failing: expected failures do not fail the run. Unexpected successes are reported
+as `FIXED?` and return a nonzero exit status so the fixture can be reassessed.
 
 To regression-test that `dir2md` and `opencode2md` keep processing every
 selected candidate but exit non-zero when any export fails:
