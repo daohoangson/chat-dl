@@ -1,8 +1,8 @@
 import { mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, relative } from "node:path";
 import type { CommandModule } from "yargs";
-import type { Provider } from "@/common";
-import { SecretRedactor } from "@/common/secrets";
+import type { Provider } from "../common";
+import { SecretRedactor } from "../common/secrets";
 import {
 	createCodexSessionDiscoveryContext,
 	getProviderByPath,
@@ -10,7 +10,7 @@ import {
 	type SessionDiscoveryContext,
 	shouldSkipSubagentDirectory,
 	shouldSkipSubagentPath,
-} from "@/providers";
+} from "../providers";
 
 interface Dir2mdArgs {
 	input: string;

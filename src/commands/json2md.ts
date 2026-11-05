@@ -2,8 +2,8 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { Readable } from "node:stream";
 import { JSONParser } from "@streamparser/json-node";
 import type { CommandModule } from "yargs";
-import { SecretRedactor } from "@/common/secrets";
-import { renderMarkdownFromJson } from "@/providers";
+import { SecretRedactor } from "../common/secrets";
+import { renderMarkdownFromJson } from "../providers";
 
 interface Json2mdArgs {
 	input: string;

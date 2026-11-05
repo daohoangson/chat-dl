@@ -1,4 +1,4 @@
-import { newBrowserPage } from "@/common";
+import { newBrowserPage } from "../../common";
 
 interface GrokWindow extends Window {
 	$_TSR?: { router?: { matches?: { l?: { share?: unknown } }[] } };

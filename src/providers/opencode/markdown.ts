@@ -1,5 +1,5 @@
-import { formatCodeBlock } from "@/common/markdown";
-import type { ProtectText } from "@/common/secrets";
+import { formatCodeBlock } from "../../common/markdown";
+import type { ProtectText } from "../../common/secrets";
 import type {
 	OpenCodeConversation,
 	OpenCodeData,

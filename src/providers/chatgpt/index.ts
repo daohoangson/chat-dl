@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { cache, parseSchemaOrThrow } from "@/common";
+import { cache, parseSchemaOrThrow } from "../../common";
 import { downloadFromUrl } from "./browser";
 import { renderFromMessages } from "./markdown";
 import { messageSchema } from "./models";

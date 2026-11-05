@@ -1,4 +1,4 @@
-import { cache, parseSchemaOrThrow } from "@/common";
+import { cache, parseSchemaOrThrow } from "../../common";
 import { downloadFromUrl } from "./browser";
 import { renderFromItems } from "./markdown";
 import { grokShareSchema } from "./models";

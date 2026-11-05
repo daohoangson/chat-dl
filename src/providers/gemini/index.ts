@@ -1,4 +1,4 @@
-import { cache, parseSchemaOrThrow } from "@/common";
+import { cache, parseSchemaOrThrow } from "../../common";
 import { type DownloadFromUrlOptions, downloadFromUrl } from "./browser";
 import { renderFromTurns } from "./markdown";
 import { geminiShareSchema } from "./models";

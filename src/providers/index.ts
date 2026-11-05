@@ -6,7 +6,7 @@ import {
 	isLocalPath,
 	type Provider,
 	parseSchemaOrThrow,
-} from "@/common";
+} from "../common";
 import type { ProtectText } from "../common/secrets";
 import * as chatgpt from "./chatgpt";
 import * as claude from "./claude";

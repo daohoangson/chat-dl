@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { type CdpPage, newBrowserPage, newCdpPage } from "@/common";
+import { type CdpPage, newBrowserPage, newCdpPage } from "../../common";
 
 export interface DownloadFromUrlOptions {
 	existingChrome?: boolean;

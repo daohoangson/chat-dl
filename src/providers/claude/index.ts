@@ -1,4 +1,4 @@
-import { cache, parseSchemaOrThrow } from "@/common";
+import { cache, parseSchemaOrThrow } from "../../common";
 import { type DownloadFromUrlOptions, downloadFromUrl } from "./browser";
 import { renderFromMessages } from "./markdown";
 import { claudeShareSchema } from "./models";

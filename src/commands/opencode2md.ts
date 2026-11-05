@@ -2,12 +2,12 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import type { CommandModule } from "yargs";
-import { SecretRedactor } from "@/common/secrets";
-import type { OpenCodeSession } from "@/providers/opencode";
+import { SecretRedactor } from "../common/secrets";
+import type { OpenCodeSession } from "../providers/opencode";
 import {
 	listSessionsFromPath,
 	renderMarkdownFromPath,
-} from "@/providers/opencode";
+} from "../providers/opencode";
 
 interface OpenCode2mdArgs {
 	database: string;

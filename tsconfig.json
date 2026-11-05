@@ -4,9 +4,6 @@
 		"module": "NodeNext",
 		"moduleResolution": "nodenext",
 		"noEmit": true,
-		"paths": {
-			"@/*": ["./src/*"]
-		},
 		"rootDir": "./src",
 		"target": "ESNext"
 	},

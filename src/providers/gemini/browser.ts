@@ -1,4 +1,8 @@
-import { newBrowserPage, newCdpPage, waitForCdpResponseBody } from "@/common";
+import {
+	newBrowserPage,
+	newCdpPage,
+	waitForCdpResponseBody,
+} from "../../common";
 
 export interface DownloadFromUrlOptions {
 	existingChrome?: boolean;

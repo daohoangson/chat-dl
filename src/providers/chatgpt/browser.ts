@@ -1,7 +1,7 @@
 import readline from "node:readline";
 import zlib from "node:zlib";
 import { minify } from "@putout/minify";
-import { newBrowserPage } from "@/common";
+import { newBrowserPage } from "../../common";
 
 async function compressString(str: string) {
 	const stream = new Blob([str])

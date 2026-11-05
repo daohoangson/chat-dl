@@ -1,11 +1,11 @@
 import { writeFileSync } from "node:fs";
 import type { CommandModule } from "yargs";
-import { SecretRedactor } from "@/common/secrets";
+import { SecretRedactor } from "../common/secrets";
 import {
 	isLocalPath,
 	renderMarkdownFromPath,
 	renderMarkdownFromUrl,
-} from "@/providers";
+} from "../providers";
 
 interface Url2mdArgs {
 	existingChrome: boolean;

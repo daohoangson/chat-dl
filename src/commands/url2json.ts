@@ -4,7 +4,7 @@ import {
 	downloadJsonFromUrl,
 	isLocalPath,
 	parseJsonFromPath,
-} from "@/providers";
+} from "../providers";
 
 interface Url2jsonArgs {
 	existingChrome: boolean;

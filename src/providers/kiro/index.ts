@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { parseSchemaOrThrow } from "@/common";
+import { parseSchemaOrThrow } from "../../common";
 import type { ProtectText } from "../../common/secrets";
 import { type JsonlWarning, parseJsonl, withJsonlWarnings } from "../jsonl";
 import { type RenderOptions, renderFromLines } from "./markdown";
