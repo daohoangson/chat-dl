@@ -1,6 +1,6 @@
 {
 	"name": "chat-dl",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "Download and convert AI chat conversations to Markdown.",
 	"license": "MIT",
 	"repository": {
