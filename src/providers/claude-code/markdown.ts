@@ -1,5 +1,5 @@
 import { homedir, userInfo } from "node:os";
-import { formatCodeBlock } from "../../common/markdown";
+import { formatCodeBlock, formatToolInput } from "../../common/markdown";
 import type { ProtectText } from "../../common/secrets";
 import type {
 	AssistantLine,
@@ -1287,7 +1287,7 @@ function renderToolUseContent(
 			const desc = typedInput.description ? `: ${typedInput.description}` : "";
 			const command = typedInput.command ?? "";
 			parts.push(`## Bash${desc}`);
-			parts.push(formatCodeBlock(maskText(ctx, command.trim()), "bash"));
+			parts.push(formatToolInput(maskText(ctx, command.trim()), "bash"));
 			renderToolResultIfExists(ctx, parts, id);
 			break;
 		}

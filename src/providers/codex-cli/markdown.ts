@@ -1,4 +1,4 @@
-import { formatCodeBlock } from "../../common/markdown";
+import { formatCodeBlock, formatToolInput } from "../../common/markdown";
 import type { ProtectText } from "../../common/secrets";
 import type {
 	CodexCliLine,
@@ -161,6 +161,7 @@ export function renderFromLines(
 				payload.input,
 				payload.call_id,
 				line.timestamp,
+				true,
 			);
 			continue;
 		}
@@ -345,16 +346,24 @@ function renderToolCall(
 	rawArgs: string,
 	callId: string,
 	timestamp?: string,
+	custom = false,
 ): void {
 	ensureAssistantHeader(ctx);
 	noteAssistantTimestamp(ctx, timestamp);
 	ctx.markdown.push(`## Tool: ${name}`);
 
-	const formattedArgs = formatArguments(rawArgs);
-	if (formattedArgs) {
-		ctx.markdown.push(
-			formatCodeBlock(formattedArgs.text, formattedArgs.language),
-		);
+	const shellArgs = !custom ? formatShellArguments(name, rawArgs) : null;
+	if (shellArgs) {
+		ctx.markdown.push(formatToolInput(shellArgs.command, "bash"));
+		if (shellArgs.metadata)
+			ctx.markdown.push(formatToolInput(shellArgs.metadata, "json"));
+	} else {
+		const formattedArgs = formatArguments(rawArgs, custom && name === "exec");
+		if (formattedArgs) {
+			ctx.markdown.push(
+				formatToolInput(formattedArgs.text, formattedArgs.language),
+			);
+		}
 	}
 
 	const output = ctx.toolOutputs.get(callId);
@@ -1010,12 +1019,37 @@ function cleanUserContent(content: string): string {
 	return cleaned.trim();
 }
 
+function formatShellArguments(
+	name: string,
+	rawArgs: string,
+): { command: string; metadata?: string } | null {
+	if (!["exec_command", "shell_command"].includes(name)) return null;
+	try {
+		const value: unknown = JSON.parse(rawArgs);
+		if (!value || typeof value !== "object" || Array.isArray(value))
+			return null;
+		const args = value as Record<string, unknown>;
+		const key = name === "exec_command" ? "cmd" : "command";
+		const command = args[key];
+		if (typeof command !== "string") return null;
+		const { [key]: _, ...rest } = args;
+		const metadata = Object.keys(rest).length
+			? JSON.stringify(rest, null, 2)
+			: undefined;
+		return metadata ? { command, metadata } : { command };
+	} catch {
+		return null;
+	}
+}
+
 function formatArguments(
 	rawArgs: string,
+	javascript = false,
 ): { text: string; language?: string } | null {
 	const trimmed = rawArgs.trim();
 	if (!trimmed) return null;
 
+	if (javascript) return { text: trimmed, language: "javascript" };
 	const jsonFormatted = formatJsonString(trimmed);
 	if (jsonFormatted) return jsonFormatted;
 

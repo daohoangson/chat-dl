@@ -504,3 +504,69 @@ test("skip tool outputs keeps calls and conversation across Markdown commands", 
 		/Example:/,
 	);
 });
+
+test("script tool inputs render as readable code without losing arguments", () => {
+	const script = `const result = await tools.exec_command({cmd: "echo hi"});\ntext(result.output);`;
+	const command = `python3 - <<'PY'\nprint("hello")\nPY`;
+	const longCommand = `python3 - <<'PY'\n${Array.from({ length: 13 }, (_, i) => `print(${i})`).join("\n")}\nPY`;
+	const codexJson = [
+		{
+			type: "response_item",
+			payload: {
+				type: "custom_tool_call",
+				name: "exec",
+				call_id: "a",
+				input: script,
+			},
+		},
+		{
+			type: "response_item",
+			payload: {
+				type: "function_call",
+				name: "exec_command",
+				call_id: "b",
+				arguments: JSON.stringify({ cmd: command, workdir: "/tmp" }),
+			},
+		},
+		{
+			type: "response_item",
+			payload: {
+				type: "function_call",
+				name: "exec_command",
+				call_id: "c",
+				arguments: '{"cmd": 42}',
+			},
+		},
+	];
+	const codexMarkdown = renderMarkdownFromJson({
+		provider: "codex-cli",
+		json: codexJson,
+	});
+	assert.ok(codexMarkdown.includes(`\`\`\`javascript\n${script}\n\`\`\``));
+	assert.ok(codexMarkdown.includes(`\`\`\`bash\n${command}\n\`\`\``));
+	assert.match(codexMarkdown, /"workdir": "\/tmp"/);
+	assert.match(codexMarkdown, /"cmd": 42/);
+	const claudeMarkdown = renderMarkdownFromJson({
+		provider: "claude-code",
+		json: [
+			{
+				type: "assistant",
+				message: {
+					content: [
+						{
+							type: "tool_use",
+							id: "a",
+							name: "Bash",
+							input: { command: longCommand, description: "Run script" },
+						},
+					],
+				},
+			},
+		],
+	});
+	assert.ok(
+		claudeMarkdown.includes(
+			`<details><summary>Tool input</summary>\n\n\`\`\`bash\n${longCommand}\n\`\`\`\n\n</details>`,
+		),
+	);
+});

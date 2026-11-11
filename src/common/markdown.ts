@@ -11,3 +11,10 @@ function getCodeFence(text: string): string {
 	);
 	return "`".repeat(Math.max(3, longestRun + 1));
 }
+
+// Keep long tool inputs available without letting them dominate the conversation.
+export function formatToolInput(text: string, language?: string): string {
+	const block = formatCodeBlock(text, language);
+	if (text.length <= 1200 && text.split("\n").length <= 12) return block;
+	return `<details><summary>Tool input</summary>\n\n${block}\n\n</details>`;
+}
