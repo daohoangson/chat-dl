@@ -22,6 +22,8 @@ import {
 	isWebSearchCallPayload,
 } from "./models";
 
+import { findScriptCommands } from "./script-commands";
+
 type Sender = "human" | "assistant" | null;
 
 interface RenderContext {
@@ -353,7 +355,15 @@ function renderToolCall(
 	ctx.markdown.push(`## Tool: ${name}`);
 
 	const shellArgs = !custom ? formatShellArguments(name, rawArgs) : null;
-	if (shellArgs) {
+	const commands = custom && name === "exec" ? findScriptCommands(rawArgs) : [];
+	if (commands.length) {
+		ctx.markdown.push("**Shell commands in script:**");
+		for (const command of commands)
+			ctx.markdown.push(formatToolInput(command, "bash"));
+		ctx.markdown.push(
+			`<details><summary>Original JavaScript</summary>\n\n${formatCodeBlock(rawArgs.trim(), "javascript")}\n\n</details>`,
+		);
+	} else if (shellArgs) {
 		ctx.markdown.push(formatToolInput(shellArgs.command, "bash"));
 		if (shellArgs.metadata)
 			ctx.markdown.push(formatToolInput(shellArgs.metadata, "json"));

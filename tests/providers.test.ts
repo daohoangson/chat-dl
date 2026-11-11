@@ -570,3 +570,44 @@ test("script tool inputs render as readable code without losing arguments", () =
 		),
 	);
 });
+
+test("Codex scripts show literal shell commands and preserve original code", () => {
+	const command = "python3 - <<'PY'\nprint('hello')\nPY";
+	const script = `const r = await tools.exec_command({cmd: ${JSON.stringify(command)}, workdir: "/repo"}); text(r.output);`;
+	const dynamic = "await tools.exec_command({cmd: getCommand()});";
+	const markdown = renderMarkdownFromJson({
+		provider: "codex-cli",
+		json: [
+			{
+				type: "response_item",
+				payload: {
+					type: "custom_tool_call",
+					name: "exec",
+					call_id: "a",
+					input: script,
+				},
+			},
+			{
+				type: "response_item",
+				payload: {
+					type: "custom_tool_call",
+					name: "exec",
+					call_id: "b",
+					input: dynamic,
+				},
+			},
+		],
+	});
+	assert.ok(
+		markdown.includes(
+			`**Shell commands in script:**\n\n\`\`\`bash\n${command}\n\`\`\``,
+		),
+	);
+	assert.ok(
+		markdown.includes(
+			`<details><summary>Original JavaScript</summary>\n\n\`\`\`javascript\n${script}`,
+		),
+	);
+	assert.ok(markdown.includes(`\`\`\`javascript\n${dynamic}\n\`\`\``));
+	assert.equal(markdown.split("**Shell commands in script:**").length - 1, 1);
+});
