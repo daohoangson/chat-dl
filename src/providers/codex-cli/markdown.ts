@@ -360,9 +360,6 @@ function renderToolCall(
 		ctx.markdown.push("**Shell commands in script:**");
 		for (const command of commands)
 			ctx.markdown.push(formatToolInput(command, "bash"));
-		ctx.markdown.push(
-			`<details><summary>Original JavaScript</summary>\n\n${formatCodeBlock(rawArgs.trim(), "javascript")}\n\n</details>`,
-		);
 	} else if (shellArgs) {
 		ctx.markdown.push(formatToolInput(shellArgs.command, "bash"));
 		if (shellArgs.metadata)

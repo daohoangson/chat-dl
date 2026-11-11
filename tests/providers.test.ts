@@ -542,7 +542,8 @@ test("script tool inputs render as readable code without losing arguments", () =
 		provider: "codex-cli",
 		json: codexJson,
 	});
-	assert.ok(codexMarkdown.includes(`\`\`\`javascript\n${script}\n\`\`\``));
+	assert.ok(codexMarkdown.includes("```bash\necho hi\n```"));
+	assert.ok(!codexMarkdown.includes(script));
 	assert.ok(codexMarkdown.includes(`\`\`\`bash\n${command}\n\`\`\``));
 	assert.match(codexMarkdown, /"workdir": "\/tmp"/);
 	assert.match(codexMarkdown, /"cmd": 42/);
@@ -571,10 +572,11 @@ test("script tool inputs render as readable code without losing arguments", () =
 	);
 });
 
-test("Codex scripts show literal shell commands and preserve original code", () => {
+test("Codex scripts show literal shell commands and retain unextractable code", () => {
 	const command = "python3 - <<'PY'\nprint('hello')\nPY";
 	const script = `const r = await tools.exec_command({cmd: ${JSON.stringify(command)}, workdir: "/repo"}); text(r.output);`;
 	const dynamic = "await tools.exec_command({cmd: getCommand()});";
+	const mixed = `await tools.exec_command({cmd: "echo hello"}); await tools.web__run({});`;
 	const markdown = renderMarkdownFromJson({
 		provider: "codex-cli",
 		json: [
@@ -596,6 +598,15 @@ test("Codex scripts show literal shell commands and preserve original code", () 
 					input: dynamic,
 				},
 			},
+			{
+				type: "response_item",
+				payload: {
+					type: "custom_tool_call",
+					name: "exec",
+					call_id: "c",
+					input: mixed,
+				},
+			},
 		],
 	});
 	assert.ok(
@@ -603,11 +614,8 @@ test("Codex scripts show literal shell commands and preserve original code", () 
 			`**Shell commands in script:**\n\n\`\`\`bash\n${command}\n\`\`\``,
 		),
 	);
-	assert.ok(
-		markdown.includes(
-			`<details><summary>Original JavaScript</summary>\n\n\`\`\`javascript\n${script}`,
-		),
-	);
+	assert.ok(!markdown.includes(script));
 	assert.ok(markdown.includes(`\`\`\`javascript\n${dynamic}\n\`\`\``));
+	assert.ok(markdown.includes(mixed));
 	assert.equal(markdown.split("**Shell commands in script:**").length - 1, 1);
 });

@@ -24,8 +24,8 @@ function isNode(value: unknown): value is SyntaxNode {
 	);
 }
 
-// Extract only literal commands from direct calls. The program is never run;
-// the original remains in the export for control flow and other arguments.
+// Extract literal commands without running the script. Keep the original script
+// when another tool call or a dynamic command cannot be represented as Bash.
 export function findScriptCommands(script: string): string[] {
 	let tree: unknown;
 	try {
@@ -38,6 +38,7 @@ export function findScriptCommands(script: string): string[] {
 		return [];
 	}
 	const commands: string[] = [];
+	let incomplete = false;
 	function visit(value: unknown): void {
 		if (Array.isArray(value)) {
 			for (const item of value) visit(item);
@@ -48,54 +49,59 @@ export function findScriptCommands(script: string): string[] {
 			const callee = value.callee;
 			if (
 				callee.type === "MemberExpression" &&
-				callee.computed === false &&
 				isNode(callee.object) &&
 				callee.object.type === "Identifier" &&
-				callee.object.name === "tools" &&
-				isNode(callee.property) &&
-				callee.property.type === "Identifier" &&
-				callee.property.name === "exec_command" &&
-				Array.isArray(value.arguments)
+				callee.object.name === "tools"
 			) {
-				const arg: unknown = value.arguments[0];
+				const countBefore = commands.length;
 				if (
-					isNode(arg) &&
-					arg.type === "ObjectExpression" &&
-					Array.isArray(arg.properties)
+					callee.computed === false &&
+					isNode(callee.property) &&
+					callee.property.type === "Identifier" &&
+					callee.property.name === "exec_command" &&
+					Array.isArray(value.arguments)
 				) {
-					const props: unknown[] = arg.properties;
+					const arg: unknown = value.arguments[0];
 					if (
-						props.every(
-							(p) =>
-								isNode(p) &&
-								p.type === "Property" &&
-								p.computed === false &&
-								p.kind === "init",
-						)
+						isNode(arg) &&
+						arg.type === "ObjectExpression" &&
+						Array.isArray(arg.properties)
 					) {
-						const matches = props.filter((p) => {
-							if (!isNode(p) || !isNode(p.key)) return false;
-							return (
-								(p.key.type === "Identifier" && p.key.name === "cmd") ||
-								(p.key.type === "Literal" && p.key.value === "cmd")
-							);
-						});
-						const prop = matches[0];
+						const props: unknown[] = arg.properties;
 						if (
-							matches.length === 1 &&
-							isNode(prop) &&
-							isNode(prop.value) &&
-							prop.value.type === "Literal" &&
-							typeof prop.value.value === "string"
+							props.every(
+								(p) =>
+									isNode(p) &&
+									p.type === "Property" &&
+									p.computed === false &&
+									p.kind === "init",
+							)
 						) {
-							commands.push(prop.value.value);
+							const matches = props.filter((p) => {
+								if (!isNode(p) || !isNode(p.key)) return false;
+								return (
+									(p.key.type === "Identifier" && p.key.name === "cmd") ||
+									(p.key.type === "Literal" && p.key.value === "cmd")
+								);
+							});
+							const prop = matches[0];
+							if (
+								matches.length === 1 &&
+								isNode(prop) &&
+								isNode(prop.value) &&
+								prop.value.type === "Literal" &&
+								typeof prop.value.value === "string"
+							) {
+								commands.push(prop.value.value);
+							}
 						}
 					}
 				}
+				if (commands.length === countBefore) incomplete = true;
 			}
 		}
 		for (const child of Object.values(value)) visit(child);
 	}
 	visit(tree);
-	return commands;
+	return incomplete ? [] : commands;
 }
