@@ -26,6 +26,7 @@ type Sender = "human" | "assistant" | null;
 
 interface RenderContext {
 	protect?: ProtectText | undefined;
+	skipToolOutputs?: boolean | undefined;
 	markdown: string[];
 	lastSender: Sender;
 	lastModel: string | null;
@@ -67,6 +68,7 @@ interface PricingInfo {
 
 export interface RenderOptions {
 	protect?: ProtectText | undefined;
+	skipToolOutputs?: boolean | undefined;
 	rootSessionId?: string;
 	subagentSessions?: RenderSubagentSession[];
 	includeUsageSummary?: boolean;
@@ -91,6 +93,7 @@ export function renderFromLines(
 	]);
 	const ctx: RenderContext = {
 		protect: options?.protect,
+		skipToolOutputs: options?.skipToolOutputs,
 		markdown: [],
 		lastSender: null,
 		lastModel: null,
@@ -367,7 +370,7 @@ function renderToolOutputIfNeeded(
 	output: ToolOutput,
 	timestamp?: string,
 ): void {
-	if (ctx.renderedOutputs.has(callId)) return;
+	if (ctx.skipToolOutputs || ctx.renderedOutputs.has(callId)) return;
 	ensureAssistantHeader(ctx);
 	noteAssistantTimestamp(ctx, timestamp);
 	ctx.markdown.push("## Tool Output");
@@ -376,6 +379,7 @@ function renderToolOutputIfNeeded(
 }
 
 function renderToolOutput(ctx: RenderContext, output: ToolOutput): void {
+	if (ctx.skipToolOutputs) return;
 	if (typeof output === "string") {
 		const formattedOutput = formatOutput(output);
 		if (!formattedOutput) return;

@@ -84,10 +84,11 @@ export function renderMarkdownFromPath(
 	context?: SessionDiscoveryContext,
 	strict = false,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): string {
 	const warnings: JsonlWarning[] = [];
 	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
-	const options: RenderOptions = { protect };
+	const options: RenderOptions = { protect, skipToolOutputs };
 	const sessionId = getSessionId(lines);
 	if (sessionId) {
 		options.rootSessionId = sessionId;
@@ -124,9 +125,10 @@ export function renderMarkdownFromPath(
 export function renderMarkdownFromJson(
 	json: unknown,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): string {
 	const lines = v.parse(v.array(codexCliLineSchema), json);
-	return renderFromLines(lines, { protect });
+	return renderFromLines(lines, { protect, skipToolOutputs });
 }
 
 function getSessionId(lines: CodexCliLine[]): string | null {

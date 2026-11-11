@@ -41,10 +41,12 @@ export function renderMarkdownFromPath(
 	filePath: string,
 	sessionId: string,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): string {
 	return renderFromConversation(
 		readSessionFromPath(filePath, sessionId),
 		protect,
+		skipToolOutputs,
 	);
 }
 

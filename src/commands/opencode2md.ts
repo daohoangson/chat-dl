@@ -18,6 +18,7 @@ interface OpenCode2mdArgs {
 	match: string | undefined;
 	limit: number | undefined;
 	redact: boolean;
+	skipToolOutputs: boolean;
 }
 
 async function handler(args: OpenCode2mdArgs): Promise<void> {
@@ -47,6 +48,7 @@ async function handler(args: OpenCode2mdArgs): Promise<void> {
 		args.database,
 		args.sessionId,
 		redactor?.protect,
+		args.skipToolOutputs,
 	);
 	const markdown = redactor ? await redactor.finish(rendered) : rendered;
 	if (args.output === "-") {
@@ -122,6 +124,7 @@ async function exportSessions(args: OpenCode2mdArgs): Promise<void> {
 				args.database,
 				session.id,
 				redactor?.protect,
+				args.skipToolOutputs,
 			);
 			const markdown = redactor ? await redactor.finish(rendered) : rendered;
 			mkdirSync(dirname(outputPath), { recursive: true });
@@ -177,6 +180,11 @@ export const opencode2md: CommandModule<unknown, OpenCode2mdArgs> = {
 	describe: "Render sessions from an OpenCode SQLite database to markdown",
 	builder: (yargs) => {
 		return yargs
+			.option("skipToolOutputs", {
+				type: "boolean",
+				default: false,
+				description: "Omit tool outputs from markdown",
+			})
 			.option("redact", {
 				type: "boolean",
 				default: true,

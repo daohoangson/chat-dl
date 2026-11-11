@@ -174,12 +174,19 @@ function getContentText(content: Content): string {
 export function renderFromMessages(
 	messages: Message[],
 	protect?: import("../../common/secrets").ProtectText,
+	skipToolOutputs = false,
 ): string {
 	const markdown: string[] = [];
 
 	// Position scopes anchors even when message IDs are missing or duplicated.
 	for (const [messageIndex, message] of messages.entries()) {
 		if (message.metadata.is_redacted === true) continue;
+		if (
+			skipToolOutputs &&
+			(message.author.role === "tool" ||
+				message.content.content_type === "execution_output")
+		)
+			continue;
 
 		const author =
 			(message.author.role === "assistant"

@@ -12,18 +12,25 @@ interface Url2mdArgs {
 	output: string;
 	url: string;
 	redact: boolean;
+	skipToolOutputs: boolean;
 }
 
 async function handler(args: Url2mdArgs) {
 	const redactor = args.redact ? new SecretRedactor() : undefined;
 	const rendered = isLocalPath(args.url)
-		? renderMarkdownFromPath(args.url, undefined, redactor?.protect)
+		? renderMarkdownFromPath(
+				args.url,
+				undefined,
+				redactor?.protect,
+				args.skipToolOutputs,
+			)
 		: await renderMarkdownFromUrl(
 				args.url,
 				{
 					existingChrome: args.existingChrome,
 				},
 				redactor?.protect,
+				args.skipToolOutputs,
 			);
 	const markdown = redactor ? await redactor.finish(rendered) : rendered;
 
@@ -40,6 +47,11 @@ export const url2md: CommandModule<unknown, Url2mdArgs> = {
 	describe: "Render markdown from chat URL or local file",
 	builder: (yargs) => {
 		return yargs
+			.option("skipToolOutputs", {
+				type: "boolean",
+				default: false,
+				description: "Omit tool outputs from markdown",
+			})
 			.option("redact", {
 				type: "boolean",
 				default: true,

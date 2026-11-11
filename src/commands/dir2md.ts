@@ -21,6 +21,7 @@ interface Dir2mdArgs {
 	match: string | undefined;
 	limit: number | undefined;
 	redact: boolean;
+	skipToolOutputs: boolean;
 }
 
 interface CandidateFile {
@@ -128,6 +129,7 @@ async function renderCandidate(
 	baseInputDir: string,
 	discoveryContext: SessionDiscoveryContext,
 	redact: boolean,
+	skipToolOutputs: boolean,
 ): Promise<boolean> {
 	const relativePath = relative(baseInputDir, candidate.path);
 
@@ -137,6 +139,7 @@ async function renderCandidate(
 			candidate.path,
 			discoveryContext,
 			redactor?.protect,
+			skipToolOutputs,
 		);
 		const markdown = redactor ? await redactor.finish(rendered) : rendered;
 
@@ -183,6 +186,7 @@ async function handler(args: Dir2mdArgs) {
 				input,
 				discoveryContext,
 				args.redact,
+				args.skipToolOutputs,
 			)
 		) {
 			processed++;
@@ -202,6 +206,11 @@ export const dir2md: CommandModule<unknown, Dir2mdArgs> = {
 	describe: "Recursively convert all chat files in a directory to markdown",
 	builder: (yargs) => {
 		return yargs
+			.option("skipToolOutputs", {
+				type: "boolean",
+				default: false,
+				description: "Omit tool outputs from markdown",
+			})
 			.option("redact", {
 				type: "boolean",
 				default: true,

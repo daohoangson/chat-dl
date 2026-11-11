@@ -23,6 +23,7 @@ export function renderMarkdownFromPath(
 	filePath: string,
 	strict = false,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): string {
 	const warnings: JsonlWarning[] = [];
 	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
@@ -37,7 +38,7 @@ export function renderMarkdownFromPath(
 	const sessionId = basename(filePath, ".jsonl");
 	const subagentsDir = join(dir, sessionId, "subagents");
 
-	const options: RenderOptions = { protect };
+	const options: RenderOptions = { protect, skipToolOutputs };
 	if (existsSync(subagentsDir)) {
 		options.usageLineGroups = collectAgentJsonlPaths(subagentsDir).map(
 			(agentPath) =>
@@ -80,8 +81,9 @@ function collectAgentJsonlPaths(dir: string): string[] {
 export function renderMarkdownFromJson(
 	json: unknown,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): string {
 	// For consistency with other providers, accept an array of lines
 	const lines = json as JsonlLine[];
-	return renderFromLines(lines, { protect });
+	return renderFromLines(lines, { protect, skipToolOutputs });
 }

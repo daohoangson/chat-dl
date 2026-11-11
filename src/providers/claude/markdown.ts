@@ -23,6 +23,7 @@ interface RenderContext {
 export function renderFromMessages(
 	messages: Message[],
 	protect?: import("../../common/secrets").ProtectText,
+	skipToolOutputs = false,
 ): string {
 	const markdown: string[] = [];
 	const ctx: RenderContext = {
@@ -53,7 +54,7 @@ export function renderFromMessages(
 					renderToolUse(ctx, content);
 					break;
 				case "tool_result":
-					renderToolResult(ctx, content);
+					if (!skipToolOutputs) renderToolResult(ctx, content);
 					break;
 			}
 		}

@@ -9,6 +9,7 @@ interface Json2mdArgs {
 	input: string;
 	output: string;
 	redact: boolean;
+	skipToolOutputs: boolean;
 }
 
 function handler(args: Json2mdArgs) {
@@ -28,7 +29,11 @@ function handler(args: Json2mdArgs) {
 
 	stream.on("data", ({ value: input }) => {
 		const redactor = args.redact ? new SecretRedactor() : undefined;
-		const rendered = renderMarkdownFromJson(input, redactor?.protect);
+		const rendered = renderMarkdownFromJson(
+			input,
+			redactor?.protect,
+			args.skipToolOutputs,
+		);
 		void (redactor ? redactor.finish(rendered) : Promise.resolve(rendered))
 			.then((markdown) => {
 				const outputPath =
@@ -47,6 +52,11 @@ export const json2md: CommandModule<unknown, Json2mdArgs> = {
 	describe: "Render markdown from chat data",
 	builder: (yargs) => {
 		return yargs
+			.option("skipToolOutputs", {
+				type: "boolean",
+				default: false,
+				description: "Omit tool outputs from markdown",
+			})
 			.option("redact", {
 				type: "boolean",
 				default: true,

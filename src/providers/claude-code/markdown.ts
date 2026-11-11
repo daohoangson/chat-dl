@@ -51,6 +51,7 @@ interface PricingInfo {
 
 interface RenderContext {
 	protect?: ProtectText | undefined;
+	skipToolOutputs?: boolean | undefined;
 	markdown: string[];
 	toolResults: Map<string, ToolResultContent>;
 	lastSender: Sender;
@@ -70,6 +71,7 @@ interface RenderContext {
 
 export interface RenderOptions {
 	protect?: ProtectText | undefined;
+	skipToolOutputs?: boolean | undefined;
 	usageLineGroups?: JsonlLine[][];
 	includeUsageSummary?: boolean;
 }
@@ -91,6 +93,7 @@ export function renderFromLines(
 
 	const ctx: RenderContext = {
 		protect: options?.protect,
+		skipToolOutputs: options?.skipToolOutputs,
 		markdown: [],
 		toolResults: new Map(),
 		lastSender: null,
@@ -1406,6 +1409,7 @@ function renderToolResultIfExists(
 	parts: string[],
 	toolUseId: string,
 ): void {
+	if (ctx.skipToolOutputs) return;
 	const result = ctx.toolResults.get(toolUseId);
 	if (!result) return;
 

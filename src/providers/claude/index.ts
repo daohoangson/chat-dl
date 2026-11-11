@@ -14,16 +14,18 @@ export async function downloadJsonFromUrl(
 export function renderMarkdownFromJson(
 	json: unknown,
 	protect?: import("../../common/secrets").ProtectText,
+	skipToolOutputs = false,
 ) {
 	const shareData = parseSchemaOrThrow(claudeShareSchema, json);
-	return renderFromMessages(shareData.chat_messages, protect);
+	return renderFromMessages(shareData.chat_messages, protect, skipToolOutputs);
 }
 
 export async function renderMarkdownFromUrl(
 	url: string,
 	options: DownloadFromUrlOptions = {},
 	protect?: import("../../common/secrets").ProtectText,
+	skipToolOutputs = false,
 ) {
 	const { value } = await downloadJsonFromUrl(url, options);
-	return renderMarkdownFromJson(value, protect);
+	return renderMarkdownFromJson(value, protect, skipToolOutputs);
 }

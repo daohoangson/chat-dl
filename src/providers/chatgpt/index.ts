@@ -11,15 +11,17 @@ export async function downloadJsonFromUrl(url: string) {
 export function renderMarkdownFromJson(
 	json: unknown,
 	protect?: import("../../common/secrets").ProtectText,
+	skipToolOutputs = false,
 ) {
 	const messages = parseSchemaOrThrow(v.array(messageSchema), json);
-	return renderFromMessages(messages, protect);
+	return renderFromMessages(messages, protect, skipToolOutputs);
 }
 
 export async function renderMarkdownFromUrl(
 	url: string,
 	protect?: import("../../common/secrets").ProtectText,
+	skipToolOutputs = false,
 ) {
 	const { value } = await downloadJsonFromUrl(url);
-	return renderMarkdownFromJson(value, protect);
+	return renderMarkdownFromJson(value, protect, skipToolOutputs);
 }

@@ -10,6 +10,7 @@ export async function downloadJsonFromUrl(url: string) {
 export function renderMarkdownFromJson(
 	json: unknown,
 	protect?: import("../../common/secrets").ProtectText,
+	_skipToolOutputs = false,
 ) {
 	const { items } = parseSchemaOrThrow(grokShareSchema, json).data.grokShare;
 	return renderFromItems(items, protect);
@@ -18,7 +19,8 @@ export function renderMarkdownFromJson(
 export async function renderMarkdownFromUrl(
 	url: string,
 	protect?: import("../../common/secrets").ProtectText,
+	skipToolOutputs = false,
 ) {
 	const { value } = await downloadJsonFromUrl(url);
-	return renderMarkdownFromJson(value, protect);
+	return renderMarkdownFromJson(value, protect, skipToolOutputs);
 }

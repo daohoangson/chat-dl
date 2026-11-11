@@ -77,6 +77,13 @@ recovered. It fails if no conversation can be recovered. `url2json` validates
 JSONL records strictly. Bulk exports continue after individual failures and
 return a nonzero exit status if any export fails.
 
+Use `--skip-tool-outputs` with any Markdown command to omit tool results while
+keeping tool calls and their inputs. For example:
+
+```bash
+npx chat-dl --skip-tool-outputs --output chat.md '<url>'
+```
+
 ### Secret detection
 
 Markdown CLI exports scan human messages and tool outputs locally. When a

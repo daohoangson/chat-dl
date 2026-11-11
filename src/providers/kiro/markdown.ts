@@ -39,6 +39,7 @@ interface PendingSubAgent {
 
 interface RenderContext {
 	protect?: ProtectText | undefined;
+	skipToolOutputs?: boolean | undefined;
 	markdown: string[];
 	lastSender: Sender;
 	modelId: string | undefined;
@@ -54,6 +55,7 @@ interface RenderContext {
 
 export interface RenderOptions {
 	protect?: ProtectText | undefined;
+	skipToolOutputs?: boolean | undefined;
 	title?: string;
 	workspacePaths?: string[];
 	modelId?: string;
@@ -65,6 +67,7 @@ export function renderFromLines(
 ): string {
 	const ctx: RenderContext = {
 		protect: options?.protect,
+		skipToolOutputs: options?.skipToolOutputs,
 		markdown: [],
 		lastSender: null,
 		modelId: options?.modelId,
@@ -196,7 +199,7 @@ function renderToolCall(
 	const body = call ? renderToolCallBody(call) : null;
 	if (body) ctx.markdown.push(body);
 
-	if (result && shouldRenderToolResult(call, result)) {
+	if (!ctx.skipToolOutputs && result && shouldRenderToolResult(call, result)) {
 		const content = result.content ?? "";
 		const formatted = formatOutput(content);
 		if (formatted) {

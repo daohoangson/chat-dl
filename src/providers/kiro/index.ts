@@ -23,6 +23,7 @@ export function renderMarkdownFromPath(
 	filePath: string,
 	strict = false,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): string {
 	const warnings: JsonlWarning[] = [];
 	const lines = parseJsonlFromPath(filePath, strict ? undefined : warnings);
@@ -37,7 +38,11 @@ export function renderMarkdownFromPath(
 		throw new Error(`No usable conversation in ${filePath}`);
 	}
 	return withJsonlWarnings(
-		renderFromLines(lines, { ...readSessionMeta(filePath), protect }),
+		renderFromLines(lines, {
+			...readSessionMeta(filePath),
+			protect,
+			skipToolOutputs,
+		}),
 		warnings,
 		protect,
 	);
@@ -46,10 +51,11 @@ export function renderMarkdownFromPath(
 export function renderMarkdownFromJson(
 	json: unknown,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): string {
 	// For consistency with other providers, accept an array of lines
 	const lines = json as KiroLine[];
-	return renderFromLines(lines, { protect });
+	return renderFromLines(lines, { protect, skipToolOutputs });
 }
 
 // Sessions are stored as <workspace-hash>/sess_<uuid>/messages.jsonl, with a

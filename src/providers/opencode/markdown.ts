@@ -10,11 +10,12 @@ import type {
 export function renderFromConversation(
 	conversation: OpenCodeConversation,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): string {
 	const markdown = [`# ${conversation.session.title}`];
 
 	for (const message of conversation.messages) {
-		renderMessage(markdown, message, protect);
+		renderMessage(markdown, message, protect, skipToolOutputs);
 	}
 
 	renderUsage(markdown, conversation);
@@ -25,6 +26,7 @@ function renderMessage(
 	markdown: string[],
 	message: OpenCodeMessage,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): void {
 	const model =
 		message.role === "assistant" ? modelLabel(message.data) : undefined;
@@ -44,7 +46,7 @@ function renderMessage(
 		markdown.push(protect?.(humanText, "human message") ?? humanText);
 	for (const part of message.parts) {
 		if (message.role === "user" && part.type === "text") continue;
-		renderPart(markdown, part, protect);
+		renderPart(markdown, part, protect, skipToolOutputs);
 	}
 
 	const error = getString(message.data.error);
@@ -55,6 +57,7 @@ function renderPart(
 	markdown: string[],
 	part: OpenCodePart,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): void {
 	switch (part.type) {
 		case "text": {
@@ -71,7 +74,7 @@ function renderPart(
 			break;
 		}
 		case "tool":
-			renderTool(markdown, part, protect);
+			renderTool(markdown, part, protect, skipToolOutputs);
 			break;
 		case "file":
 			renderFile(markdown, part);
@@ -86,6 +89,7 @@ function renderTool(
 	markdown: string[],
 	part: OpenCodePart,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ): void {
 	const name = getString(part.tool) ?? "unknown";
 	const state = getRecord(part.state);
@@ -100,7 +104,7 @@ function renderTool(
 		blocks.push("\n**Input:**\n");
 		blocks.push(formatCodeBlock(stringify(input), "json"));
 	}
-	if (output) {
+	if (output && !skipToolOutputs) {
 		blocks.push("\n**Output:**\n");
 		const formatted = formatCodeBlock(output);
 		blocks.push(protect?.(formatted, "tool output", output) ?? formatted);

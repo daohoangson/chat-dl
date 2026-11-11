@@ -14,6 +14,7 @@ export async function downloadJsonFromUrl(
 export function renderMarkdownFromJson(
 	json: unknown,
 	protect?: import("../../common/secrets").ProtectText,
+	_skipToolOutputs = false,
 ) {
 	const [conversation] = parseSchemaOrThrow(geminiShareSchema, json);
 	return renderFromTurns(conversation[1], protect);
@@ -23,7 +24,8 @@ export async function renderMarkdownFromUrl(
 	url: string,
 	options: DownloadFromUrlOptions = {},
 	protect?: import("../../common/secrets").ProtectText,
+	skipToolOutputs = false,
 ) {
 	const { value } = await downloadJsonFromUrl(url, options);
-	return renderMarkdownFromJson(value, protect);
+	return renderMarkdownFromJson(value, protect, skipToolOutputs);
 }

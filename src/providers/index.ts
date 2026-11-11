@@ -107,7 +107,11 @@ export function parseJsonFromPath(path: string) {
 	}
 }
 
-export function renderMarkdownFromJson(input: unknown, protect?: ProtectText) {
+export function renderMarkdownFromJson(
+	input: unknown,
+	protect?: ProtectText,
+	skipToolOutputs = false,
+) {
 	const parsed: { provider: Provider; json: unknown } = parseSchemaOrThrow(
 		v.object({
 			provider: v.picklist([
@@ -127,19 +131,19 @@ export function renderMarkdownFromJson(input: unknown, protect?: ProtectText) {
 	const { provider, json } = parsed;
 	switch (provider) {
 		case "chatgpt":
-			return chatgpt.renderMarkdownFromJson(json, protect);
+			return chatgpt.renderMarkdownFromJson(json, protect, skipToolOutputs);
 		case "claude":
-			return claude.renderMarkdownFromJson(json, protect);
+			return claude.renderMarkdownFromJson(json, protect, skipToolOutputs);
 		case "claude-code":
-			return claudeCode.renderMarkdownFromJson(json, protect);
+			return claudeCode.renderMarkdownFromJson(json, protect, skipToolOutputs);
 		case "codex-cli":
-			return codexCli.renderMarkdownFromJson(json, protect);
+			return codexCli.renderMarkdownFromJson(json, protect, skipToolOutputs);
 		case "kiro":
-			return kiro.renderMarkdownFromJson(json, protect);
+			return kiro.renderMarkdownFromJson(json, protect, skipToolOutputs);
 		case "gemini":
-			return gemini.renderMarkdownFromJson(json, protect);
+			return gemini.renderMarkdownFromJson(json, protect, skipToolOutputs);
 		case "grok":
-			return grok.renderMarkdownFromJson(json, protect);
+			return grok.renderMarkdownFromJson(json, protect, skipToolOutputs);
 	}
 }
 
@@ -147,17 +151,28 @@ export async function renderMarkdownFromUrl(
 	url: string,
 	options: DownloadOptions = {},
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ) {
 	const provider = getProviderByUrl(url);
 	switch (provider) {
 		case "chatgpt":
-			return await chatgpt.renderMarkdownFromUrl(url, protect);
+			return await chatgpt.renderMarkdownFromUrl(url, protect, skipToolOutputs);
 		case "claude":
-			return await claude.renderMarkdownFromUrl(url, options, protect);
+			return await claude.renderMarkdownFromUrl(
+				url,
+				options,
+				protect,
+				skipToolOutputs,
+			);
 		case "gemini":
-			return await gemini.renderMarkdownFromUrl(url, options, protect);
+			return await gemini.renderMarkdownFromUrl(
+				url,
+				options,
+				protect,
+				skipToolOutputs,
+			);
 		case "grok":
-			return await grok.renderMarkdownFromUrl(url, protect);
+			return await grok.renderMarkdownFromUrl(url, protect, skipToolOutputs);
 	}
 
 	throw new Error(`Unsupported URL: ${url}`);
@@ -167,20 +182,27 @@ export function renderMarkdownFromPath(
 	path: string,
 	discoveryContext?: codexCli.SessionDiscoveryContext,
 	protect?: ProtectText,
+	skipToolOutputs = false,
 ) {
 	const provider = getProviderByPath(path);
 	switch (provider) {
 		case "claude-code":
-			return claudeCode.renderMarkdownFromPath(path, false, protect);
+			return claudeCode.renderMarkdownFromPath(
+				path,
+				false,
+				protect,
+				skipToolOutputs,
+			);
 		case "codex-cli":
 			return codexCli.renderMarkdownFromPath(
 				path,
 				discoveryContext,
 				false,
 				protect,
+				skipToolOutputs,
 			);
 		case "kiro":
-			return kiro.renderMarkdownFromPath(path, false, protect);
+			return kiro.renderMarkdownFromPath(path, false, protect, skipToolOutputs);
 		default:
 			throw new Error(`Unsupported file type: ${path}`);
 	}

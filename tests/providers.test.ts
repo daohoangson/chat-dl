@@ -290,3 +290,217 @@ test("OpenCode: parses SQLite rows, renders Markdown and rejects invalid rows", 
 		rmSync(directory, { recursive: true, force: true });
 	}
 });
+
+test("skip tool outputs keeps calls and conversation across Markdown commands", (t) => {
+	const dir = mkdtempSync(join(tmpdir(), "chat-dl-skip-output-"));
+	t.after(() => rmSync(dir, { recursive: true, force: true }));
+	const cli = (...args: string[]) => {
+		const result = spawnSync(
+			process.execPath,
+			["--import", "tsx", "src/bin/chat-dl.ts", ...args],
+			{
+				cwd: join(__dirname, ".."),
+				encoding: "utf8",
+			},
+		);
+		assert.equal(result.status, 0, result.stderr);
+		return result.stdout;
+	};
+	const marker = "unique-result-marker";
+	const scenarios = [
+		{
+			provider: "claude-code",
+			json: [
+				{ type: "user", message: { content: "hello" } },
+				{
+					type: "assistant",
+					message: {
+						content: [
+							{
+								type: "tool_use",
+								id: "id",
+								name: "Bash",
+								input: { command: "echo test" },
+							},
+						],
+					},
+				},
+				{
+					type: "user",
+					message: {
+						content: [
+							{ type: "tool_result", tool_use_id: "id", content: marker },
+						],
+					},
+				},
+			],
+		},
+		{
+			provider: "codex-cli",
+			json: [
+				{
+					type: "response_item",
+					payload: { type: "message", role: "user", content: "hello" },
+				},
+				{
+					type: "response_item",
+					payload: {
+						type: "function_call",
+						name: "test",
+						arguments: "{}",
+						call_id: "id",
+					},
+				},
+				{
+					type: "response_item",
+					payload: {
+						type: "function_call_output",
+						call_id: "id",
+						output: marker,
+					},
+				},
+			],
+		},
+		{
+			provider: "kiro",
+			json: [
+				{ payload: { type: "user", content: "hello" } },
+				{
+					payload: {
+						type: "tool_call",
+						toolCallId: "id",
+						toolName: "test",
+						args: {},
+					},
+				},
+				{
+					payload: {
+						type: "tool_result",
+						toolCallId: "id",
+						content: marker,
+						success: false,
+					},
+				},
+			],
+		},
+		{
+			provider: "claude",
+			json: {
+				chat_messages: [
+					{
+						sender: "assistant",
+						content: [
+							{ type: "tool_use", name: "test", input: "call-marker" },
+							{
+								type: "tool_result",
+								name: "test",
+								content: [{ text: marker }],
+							},
+						],
+					},
+				],
+			},
+		},
+		{
+			provider: "chatgpt",
+			json: [
+				{
+					id: "user",
+					author: { role: "user" },
+					content: { content_type: "text", parts: ["hello"] },
+					metadata: {},
+				},
+				{
+					id: "tool",
+					author: { role: "tool", name: "test" },
+					content: { content_type: "execution_output", text: marker },
+					metadata: {},
+				},
+				{
+					id: "tool-text",
+					author: { role: "tool", name: "test" },
+					content: { content_type: "text", parts: [marker] },
+					metadata: {},
+				},
+			],
+		},
+	];
+	for (const scenario of scenarios) {
+		const file = join(dir, `${scenario.provider}.json`);
+		writeFileSync(file, JSON.stringify(scenario));
+		assert.match(
+			cli("json2md", "--input", file, "--no-redact"),
+			new RegExp(marker),
+			scenario.provider,
+		);
+		const skipped = cli(
+			"json2md",
+			"--input",
+			file,
+			"--skip-tool-outputs",
+			"--no-redact",
+		);
+		assert.doesNotMatch(skipped, new RegExp(marker), scenario.provider);
+		assert.match(skipped, /hello|call-marker/, scenario.provider);
+	}
+	for (const provider of ["gemini", "grok"]) {
+		const file = join(dir, `${provider}.json`);
+		writeFileSync(
+			file,
+			JSON.stringify({ provider, json: JSON.parse(read(`${provider}.json`)) }),
+		);
+		assert.equal(
+			cli("json2md", "--input", file, "--no-redact"),
+			cli("json2md", "--input", file, "--no-redact", "--skip-tool-outputs"),
+		);
+	}
+	const local = join(fixtures, "codex-cli/sessions/root.jsonl");
+	assert.match(cli(local, "--no-redact"), /Example:/);
+	assert.doesNotMatch(
+		cli(local, "--skip-tool-outputs", "--no-redact"),
+		/Example:/,
+	);
+	const output = join(dir, "output");
+	cli(
+		"dir2md",
+		join(fixtures, "codex-cli/sessions"),
+		"--output",
+		output,
+		"--skip-tool-outputs",
+	);
+	assert.doesNotMatch(
+		readFileSync(join(output, "root.md"), "utf8"),
+		/Example:/,
+	);
+	const dbPath = join(dir, "opencode.db");
+	const db = new DatabaseSync(dbPath);
+	db.exec(read("opencode.sql"));
+	db.close();
+	const opencodeArgs = [
+		"opencode2md",
+		"root",
+		"--database",
+		dbPath,
+		"--no-redact",
+	];
+	assert.match(cli(...opencodeArgs), /Example:/);
+	const skipped = cli(...opencodeArgs, "--skip-tool-outputs");
+	assert.doesNotMatch(skipped, /Example:/);
+	assert.match(skipped, /example\.md/);
+	const bulk = join(dir, "opencode-output");
+	cli(
+		"opencode2md",
+		"--database",
+		dbPath,
+		"--output",
+		bulk,
+		"--skip-tool-outputs",
+	);
+	assert.doesNotMatch(
+		readFileSync(
+			join(bulk, "synthetic-project", "1970-01-01", "root.md"),
+			"utf8",
+		),
+		/Example:/,
+	);
+});
