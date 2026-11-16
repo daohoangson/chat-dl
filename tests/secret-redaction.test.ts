@@ -9,6 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { performance } from "node:perf_hooks";
 import { DatabaseSync } from "node:sqlite";
 import { test } from "node:test";
 import { SecretRedactor } from "../src/common/secrets";
@@ -23,6 +24,19 @@ const toolArgument = `ghp_${"d1".repeat(18)}`;
 const cli = process.env.CHAT_DL_TEST_BUILT
 	? ["dist/chat-dl.js"]
 	: ["--import", "tsx", "src/bin/chat-dl.ts"];
+
+test("repeated redaction does not retain Secretlint profiling entries", async () => {
+	const before = performance.getEntries().length;
+	for (let i = 0; i < 20; i++) {
+		const redactor = new SecretRedactor();
+		const output = await redactor.finish(
+			redactor.protect(userSecret, "human message"),
+		);
+		assert.ok(!output.includes(userSecret));
+		await new Promise<void>((resolve) => setImmediate(resolve));
+	}
+	assert.equal(performance.getEntries().length, before);
+});
 
 test("scanner covers generic credentials, AWS IDs and ignore directives", async () => {
 	const redactor = new SecretRedactor();

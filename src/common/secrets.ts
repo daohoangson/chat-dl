@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { lintSource } from "@secretlint/core";
+import { secretLintProfiler } from "@secretlint/profiler";
 import { rules } from "@secretlint/secretlint-rule-preset-recommend";
+
+// The default profiler retains timing entries across every scan in a bulk export.
+secretLintProfiler.setEnabled(false);
 
 export type ProtectedBlock = "human message" | "tool output";
 export type ProtectText = (
